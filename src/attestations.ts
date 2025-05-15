@@ -3,13 +3,14 @@ import { TrustfulResolverABI } from './TrustfulResolverABI';
 import { Context } from 'grammy';
 import axios from 'axios';
 import { getAbstractAccount } from './get-abstract-account';
+import { saveUserData } from './supabase';
 
-const PLATFORM = 'ZUITZERLAND';
+export const PLATFORM = 'ZUITZERLAND';
 const chain = '11145513';
 
 const configs = {
   '11145513': {
-    resolver: "0x7B1da691abc0BA2F4623cbae2BDD291Dd6735E06",
+    resolver: '0x7B1da691abc0BA2F4623cbae2BDD291Dd6735E06',
     UIDs: {
       ATTEST_MANAGER:
         '0xe0b1f4edc9136d8026dc3e01655ea093f38a6923d065d1464651f5fb10741b3d',
@@ -24,20 +25,69 @@ const configs = {
 };
 
 const config = configs[chain];
-const resolverContract = () => new ethers.Contract(config.resolver, TrustfulResolverABI);
+const resolverContract = () =>
+  new ethers.Contract(config.resolver, TrustfulResolverABI);
 
-export const setupAccount = async (userId: string) => {
+export const setupAccount = async (ctx: Context) => {
   try {
+    // Get the user ID from the context
+    const tgId = ctx.from?.id.toString();
+
+    if (!tgId) {
+      await ctx.reply('Could not identify your user ID. Please try again.');
+      return null;
+    }
+
+    // Create the abstract account
     const response = await axios.put(
       `/account-abstraction/platforms/${PLATFORM}/accounts?chain=sepolia`,
-      { userIds: [userId] }
+      { userIds: [tgId] }
     );
 
-    console.log('response', response.data);
+    // Extract the account and handler ID from the response
+    // Adjust this based on the actual response structure
+    const address = response.data?.accounts[0].account;
+    const handlerId = ctx.from?.username;
+
+    console.log('Account setup response:', handlerId);
+    if (handlerId && address) {
+      // Save the user data to Supabase including the account
+      const mappingResult = await saveUserData(
+        handlerId,
+        tgIds,
+        address,
+        PLATFORM
+      );
+
+      if (mappingResult.success) {
+        console.log('User data saved successfully:', mappingResult.data);
+        await ctx.reply(
+          `Your account has been set up successfully!\nHandler ID: ${handlerId}\nAccount: ${address}`
+        );
+      } else {
+        console.error('Failed to save user data:', mappingResult.error);
+        await ctx.reply(
+          'Your account was created, but there was an issue saving your user data.'
+        );
+      }
+    } else {
+      console.error(
+        'Missing account or handler ID in response:',
+        response.data
+      );
+      await ctx.reply(
+        'Your account was created, but we could not identify your account or handler ID.'
+      );
+    }
 
     return response.data;
   } catch (error) {
-    console.error(error);
+    console.error('Error setting up account:', error);
+    if (ctx) {
+      await ctx.reply(
+        'An error occurred while setting up your account. Please try again later.'
+      );
+    }
     return null;
   }
 };

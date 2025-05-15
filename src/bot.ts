@@ -2,13 +2,9 @@ import { Bot, Context } from 'grammy';
 import { Menu } from '@grammyjs/menu';
 
 import dotenv from 'dotenv';
-import { getAbstractAccount } from '../src/get-abstract-account';
 import axios from 'axios';
-import { ethers } from 'ethers';
-import { TrustfulResolverABI } from './TrustfulResolverABI';
 import { setupAccount, attestCommand } from './attestations';
 
-const PLATFORM = 'ZUITZERLAND';
 // Load environment variables
 dotenv.config();
 
