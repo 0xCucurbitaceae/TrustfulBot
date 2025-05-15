@@ -4,6 +4,7 @@ import { Context } from 'grammy';
 import axios from 'axios';
 import { getAbstractAccount } from './get-abstract-account';
 import { saveUserData } from './supabase';
+import { giveAttestation } from './trustful';
 
 export const PLATFORM = 'ZUITZERLAND';
 const chain = '11145513';
@@ -93,56 +94,7 @@ export const setupAccount = async (ctx: Context) => {
 };
 
 
-/**
- * This sends forms and sends a request to create an attestation
- */
-export const giveAttestation = async (recipient: string, attester: string, attestationType: string = config.UIDs.ATTEST_MANAGER) => {
-  try {
-    // Generate the calldata for the attestation
-    const calldata = resolverContract().interface.encodeFunctionData('attest', [
-      {
-        uid: attestationType,
-        schema: attestationType,
-        time: 0,
-        expirationTime: 0,
-        revocationTime: 0,
-        refUID:
-          '0x0000000000000000000000000000000000000000000000000000000000000000',
-        recipient,
-        attester,
-        revocable: false,
-        data: '0x00',
-      },
-    ]);
-
-    // Fetch the user's account address
-    const accountData = await getAbstractAccount(recipient, 'telegram');
-
-    if (!accountData.exists) {
-      return;
-    }
-
-    // Send the operation to the resolver
-    const response = await axios.post(
-      '/account-abstraction/operations',
-      {
-        ops: [
-          {
-            account: accountData.account,
-            target: config.resolver,
-            calldata,
-          },
-        ],
-      }
-    );
-
-    console.log('Operation response:', response.data);
-    return { success: true, data: response.data };
-  } catch (error) {
-    console.error('Error giving attestation:', error);
-    return { success: false, error };
-  }
-};
+// giveAttestation function has been moved to trustful.ts
 
 /**
  * Command handler for /attest
