@@ -1,0 +1,566 @@
+openapi: 3.0.0
+info:
+  title: Blessnet Services API
+  description: API documentation for Blessnet Services
+  version: 1.0.0
+servers:
+  - url: /api
+    description: Default API server
+paths:
+  # Documentation Routes
+  /docs/openapi:
+    get:
+      summary: Get OpenAPI specification
+      description: Returns the OpenAPI YAML specification file
+      tags:
+        - Documentation
+      responses:
+        '200':
+          description: OpenAPI YAML specification
+          content:
+            text/yaml:
+              schema:
+                type: string
+        '500':
+          description: Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
+  # Account Abstraction Routes
+  /account-abstraction/platforms/{platform}/accounts/{id}:
+    get:
+      summary: Get details for an abstracted account
+      description: Return details for an abstracted account
+      tags:
+        - Account Abstraction
+      parameters:
+        - name: platform
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Account details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  account:
+                    type: string
+                  exists:
+                    type: boolean
+                  hashedId:
+                    type: string
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+      security:
+        - ApiKeyAuth: [aa:read]
+
+  /account-abstraction/platforms/{platform}/accounts/:
+    put:
+      summary: Create abstract accounts for the project
+      description: Create abstract accounts for the project
+      tags:
+        - Account Abstraction
+      parameters:
+        - name: platform
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: chain
+          in: query
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userIds
+              properties:
+                userIds:
+                  type: array
+                  items:
+                    type: string
+                  minItems: 1
+                funding:
+                  type: string
+      responses:
+        '202':
+          description: Accounts creation queued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  newAccounts:
+                    type: integer
+                  existingAccounts:
+                    type: integer
+                  accounts:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        account:
+                          type: string
+                        userId:
+                          type: string
+                        message:
+                          type: string
+                        deliveryId:
+                          type: string
+        '500':
+          description: Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+      security:
+        - ApiKeyAuth: [aa:create]
+
+  /account-abstraction/operations:
+    post:
+      summary: Post operations to the AA endpoint
+      description: Post operations to the AA endpoint
+      tags:
+        - Account Abstraction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - ops
+              properties:
+                ops:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - account
+                      - target
+                      - calldata
+                    properties:
+                      account:
+                        type: string
+                        format: ethereum-address
+                      target:
+                        type: string
+                        format: ethereum-address
+                      calldata:
+                        type: string
+                  minItems: 1
+      responses:
+        '202':
+          description: Operations requested
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  requestOwner:
+                    type: string
+                  for:
+                    type: array
+                    items:
+                      type: object
+                  destinationChain:
+                    type: string
+                  deliveryIds:
+                    type: array
+                    items:
+                      type: string
+        '500':
+          description: Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+      security:
+        - ApiKeyAuth: [aa:write]
+
+  /account-abstraction/operations/accounts/{address}:
+    get:
+      summary: Get operations for an account
+      description: Return details of all account abstraction deliveries for a given account
+      tags:
+        - Account Abstraction
+      parameters:
+        - name: address
+          in: path
+          required: true
+          schema:
+            type: string
+            format: ethereum-address
+      responses:
+        '200':
+          description: Delivery data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+      security:
+        - ApiKeyAuth: [aa:read]
+
+  # Addresses Routes
+  /addresses/{address}/delegates:
+    get:
+      summary: Get delegates for an address
+      description: Return all delegates for an address
+      tags:
+        - Addresses
+      parameters:
+        - name: address
+          in: path
+          required: true
+          schema:
+            type: string
+            format: ethereum-address
+        - name: permission
+          in: query
+          required: false
+          schema:
+            type: number
+        - name: origin
+          in: query
+          required: false
+          schema:
+            type: number
+        - name: source
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Delegates list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  delegates:
+                    type: array
+                    items:
+                      type: object
+
+  /addresses/{address}/permissions:
+    get:
+      summary: Get permissions for an address
+      description: Return all permissions for an address
+      tags:
+        - Addresses
+      parameters:
+        - name: address
+          in: path
+          required: true
+          schema:
+            type: string
+            format: ethereum-address
+        - name: permission
+          in: query
+          required: false
+          schema:
+            type: number
+        - name: origin
+          in: query
+          required: false
+          schema:
+            type: number
+        - name: source
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Permissions list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  asDelegate:
+                    type: array
+                    items:
+                      type: object
+                  asVault:
+                    type: array
+                    items:
+                      type: object
+
+  /addresses/{address}/vaults:
+    get:
+      summary: Get vaults for an address
+      description: Return all vaults for an address
+      tags:
+        - Addresses
+      parameters:
+        - name: address
+          in: path
+          required: true
+          schema:
+            type: string
+            format: ethereum-address
+        - name: permission
+          in: query
+          required: false
+          schema:
+            type: number
+        - name: origin
+          in: query
+          required: false
+          schema:
+            type: number
+        - name: source
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Vaults list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  vaults:
+                    type: array
+                    items:
+                      type: object
+
+  # Bridge Routes
+  /bridge/transfers:
+    get:
+      summary: Get bridge transfers
+      description: Return paginated bridge transfer records
+      tags:
+        - Bridge
+      parameters:
+        - name: fromChains
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Comma-separated list of chain IDs
+        - name: toChains
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Comma-separated list of chain IDs
+        - name: types
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Comma-separated list of transfer types
+        - name: address
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Address to filter by
+        - name: from_timestamp
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Start timestamp
+        - name: to_timestamp
+          in: query
+          required: false
+          schema:
+            type: string
+          description: End timestamp
+        - name: page_size
+          in: query
+          required: false
+          schema:
+            type: number
+          description: Number of records per page
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Pagination cursor
+      responses:
+        '200':
+          description: Bridge data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bridgeData:
+                    type: array
+                    items:
+                      type: object
+                  nextCursor:
+                    type: string
+
+  /bridge/transfers/transactions/{hash}:
+    get:
+      summary: Get bridge transfer by transaction hash
+      description: Return bridge transfer record that contains a given hash
+      tags:
+        - Bridge
+      parameters:
+        - name: hash
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Transaction hash
+      responses:
+        '200':
+          description: Bridge data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bridgeData:
+                    type: object
+
+  # Deliveries Routes
+  /deliveries:
+    get:
+      summary: Get all deliveries
+      description: Get all deliveries (admin only)
+      tags:
+        - Deliveries
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: number
+          default: 1
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: number
+          default: 100
+      responses:
+        '200':
+          description: Deliveries list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+      security:
+        - ApiKeyAuth: [admin]
+
+  /deliveries/{id}/retry:
+    post:
+      summary: Retry a delivery
+      description: Retry a delivery by ID (admin only)
+      tags:
+        - Deliveries
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '404':
+          description: Delivery not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+      security:
+        - ApiKeyAuth: [admin]
+
+  /deliveries/{id}:
+    get:
+      summary: Get delivery by ID
+      description: Return delivery details by ID
+      tags:
+        - Deliveries
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Delivery details
+          content:
+            application/json:
+              schema:
+                type: object
+        '404':
+          description: Delivery not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: API key authentication
