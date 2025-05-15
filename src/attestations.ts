@@ -54,7 +54,7 @@ export const setupAccount = async (ctx: Context) => {
       // Save the user data to Supabase including the account
       const mappingResult = await saveUserData(
         handlerId,
-        tgIds,
+        tgId,
         address,
         PLATFORM
       );
