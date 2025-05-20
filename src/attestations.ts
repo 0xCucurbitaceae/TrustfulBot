@@ -4,31 +4,15 @@ import { Context } from 'grammy';
 import axios from 'axios';
 import { getAbstractAccount } from './get-abstract-account';
 import { getUserByHandler, saveUserData } from './supabase';
-import { giveAttestation } from './trustful';
+import { addVillager, configs, giveAttestation } from './trustful';
+import { sendOp } from './send-op';
 
 export const PLATFORM = 'ZUITZERLAND';
 const chain = '11145513';
 
-const configs = {
-  '11145513': {
-    resolver: '0x7B1da691abc0BA2F4623cbae2BDD291Dd6735E06',
-    eas: '0x47AF30cd03FBA8e1907C9105Ff059aE6Db94Aea0',
-    UIDs: {
-      ATTEST_MANAGER:
-        '0xe0b1f4edc9136d8026dc3e01655ea093f38a6923d065d1464651f5fb10741b3d',
-      ATTEST_VILLAGER:
-        '0xadace4b84aad6e1701566bde338fca5f0e8306da73a917b3d968eaea057ca98d',
-      ATTEST_EVENT:
-        '0x071f94237e0f0dcddf7abaeeeac9164dca91a6e5ab5c320a06ee9338b385111a',
-      ATTEST_RESPONSE:
-        '0xd6e74bf303bc3699afa0fc249b8d026c936ddfc50e73eee03a8da227c1c6d83f',
-    },
-  },
-};
-
 const config = configs[chain];
-const resolverContract = () =>
-  new ethers.Contract(config.resolver, TrustfulResolverABI);
+// const resolverContract = () =>
+//   new ethers.Contract(config.resolver, TrustfulResolverABI);
 
 export const setupAccount = async (ctx: Context) => {
   try {
@@ -60,6 +44,7 @@ export const setupAccount = async (ctx: Context) => {
         address,
         PLATFORM
       );
+      await addVillager(address);
 
       if (mappingResult.success) {
         console.log('User data saved successfully:', mappingResult.data);
@@ -91,6 +76,48 @@ export const setupAccount = async (ctx: Context) => {
       );
     }
     return null;
+  }
+};
+
+export const addTitle = async (ctx: Context) => {
+  const title = ctx.message?.text?.split(' ')[1];
+  if (!title) {
+    await ctx.reply('Please provide a title');
+    return;
+  }
+  try {
+    const res = await sendOp([
+      {
+        account: process.env.BLESSNET_API_ACCOUNT!,
+        target: config.resolver,
+        args: [title, true],
+        functionName: 'setAttestationTitle',
+        abi: TrustfulResolverABI,
+      },
+    ]);
+
+    const deliveryId = res.deliveryIds[0];
+
+    console.log(deliveryId);
+    // poll delivery status
+    const pollInterval = setInterval(async () => {
+      const response = await axios.get(`/deliveries/${deliveryId}`);
+      const status = response.data.status;
+      console.log(status);
+      if (status === 'delivered') {
+        clearInterval(pollInterval);
+        await ctx.reply('Title added successfully');
+      }
+      if (status === 'failed') {
+        clearInterval(pollInterval);
+        await ctx.reply('Tx to add title failed');
+      }
+    }, 500);
+    return;
+  } catch (error) {
+    console.error('Error adding title:', error);
+    await ctx.reply('Failed to add title');
+    return;
   }
 };
 

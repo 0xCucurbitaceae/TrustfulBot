@@ -3,7 +3,7 @@ import { Menu } from '@grammyjs/menu';
 
 import dotenv from 'dotenv';
 import axios from 'axios';
-import { setupAccount, attestCommand } from './attestations';
+import { setupAccount, attestCommand, addTitle } from './attestations';
 
 // Load environment variables
 dotenv.config();
@@ -21,6 +21,7 @@ const menu = new Menu('main').text('Setup', setupAccount);
 bot.use(menu);
 bot.command('setup', setupAccount);
 bot.command('attest', attestCommand);
+bot.command('addTitle', addTitle);
 
 bot.on('message', (ctx) => {
   console.log('message', ctx);
