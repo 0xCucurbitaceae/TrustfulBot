@@ -1,0 +1,12 @@
+We're building a tg app via which users can give attestations to each other.
+They can for example say "Committed to github", "Helped cooking", etc. The list will be readable via a smart contract
+
+The tg bot emits the attestations via an api call to blessnet.
+
+The flow is as follows:
+
+- User sets up his account, which:
+  - creates an abstract account on the blockchain
+  - saves the handle-userId mapping in supabase
+  - adds the user to the community (gives it a VILLAGER attestation)
+- User can then give attestations to other users, by sending a /attest @handle reason, where reason is one of the available attestation

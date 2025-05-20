@@ -1,10 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
+import { PLATFORM } from './attestations';
 dotenv.config();
 
 // Initialize the Supabase client
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_ANON_KEY;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
   console.error('Missing Supabase environment variables');
@@ -39,7 +40,7 @@ export const saveUserData = async (
   try {
     const { data, error } = await supabase
       .from('users')
-      .upsert({handle, tgId, address })
+      .upsert({ handle, tgId, address })
       .select()
       .single();
 
@@ -63,14 +64,18 @@ export const saveUserData = async (
  */
 export const getUserByHandler = async (
   handle: string,
-  platform: string = 'ZUITZERLAND'
-): Promise<{ success: boolean; user_id?: string; account?: string; error?: any }> => {
+  platform: string = PLATFORM
+): Promise<{
+  success: boolean;
+  user_id?: string;
+  account?: string;
+  error?: any;
+}> => {
   try {
     const { data, error } = await supabase
       .from('users')
-      .select('user_id, account')
+      .select('*')
       .eq('handle', handle)
-      .eq('platform', platform)
       .single();
 
     if (error) {
@@ -78,7 +83,7 @@ export const getUserByHandler = async (
       return { success: false, error };
     }
 
-    return { success: true, user_id: data.user_id, account: data.account };
+    return { success: true, ...data };
   } catch (error) {
     console.error('Exception getting user ID by handler:', error);
     return { success: false, error };

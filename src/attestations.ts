@@ -3,7 +3,7 @@ import { TrustfulResolverABI } from './TrustfulResolverABI';
 import { Context } from 'grammy';
 import axios from 'axios';
 import { getAbstractAccount } from './get-abstract-account';
-import { saveUserData } from './supabase';
+import { getUserByHandler, saveUserData } from './supabase';
 import { giveAttestation } from './trustful';
 
 export const PLATFORM = 'ZUITZERLAND';
@@ -12,6 +12,7 @@ const chain = '11145513';
 const configs = {
   '11145513': {
     resolver: '0x7B1da691abc0BA2F4623cbae2BDD291Dd6735E06',
+    eas: '0x47AF30cd03FBA8e1907C9105Ff059aE6Db94Aea0',
     UIDs: {
       ATTEST_MANAGER:
         '0xe0b1f4edc9136d8026dc3e01655ea093f38a6923d065d1464651f5fb10741b3d',
@@ -93,7 +94,6 @@ export const setupAccount = async (ctx: Context) => {
   }
 };
 
-
 // giveAttestation function has been moved to trustful.ts
 
 /**
@@ -103,52 +103,45 @@ export const setupAccount = async (ctx: Context) => {
 export const attestCommand = async (ctx: Context) => {
   try {
     console.log('ctx', ctx.entities());
-    await ctx.reply('Please mention a user to attest. Example: /attest @username');
-    return
-    // Check if there's a mentioned user
-    const message = ctx.message?.text || '';
-    const mentionMatch = message.match(/@([\w\d_]+)/);
-
-    if (!mentionMatch) {
-      await ctx.reply('Please mention a user to attest. Example: /attest @username');
+    await ctx.reply(
+      'Please mention a user to attest. Example: /attest @username'
+    );
+    const mentions = ctx
+      .entities()
+      .filter((entity) => entity.type === 'mention');
+    if (mentions.length === 0) {
+      await ctx.reply(
+        'Please mention a user to attest. Example: /attest @username'
+      );
       return;
     }
-
-    const mentionedUsername = mentionMatch[1];
-
-    // Get the sender's ID
-    const senderId = ctx.from?.id.toString()!;
-
-    // Check if the sender has an account
-    const senderAccount = await getAbstractAccount(senderId, PLATFORM);
-    if (!senderAccount.exists) {
-      await ctx.reply('You need to set up your account first. Use the /setup command.');
+    const me = await getUserByHandler(ctx.from?.username || '');
+    if (!me.success) {
+      await ctx.reply(
+        'You need to set up your account first. Use the /setup command.'
+      );
       return;
     }
-
-    // In a real scenario, you would need to resolve the username to a Telegram ID
-    // For now, we'll use a simplified approach and assume the mentioned user is valid
-    // In a production environment, you would use Telegram's API to get user info
-
-    // For demonstration purposes, we'll use the mentioned username as the recipient ID
-    // This should be replaced with proper user resolution in production
-    const recipientId = mentionedUsername;
-
-    // Attempt to get the recipient's account
-    const recipientAccount = await getAbstractAccount(recipientId, PLATFORM);
-    if (!recipientAccount.exists) {
-      await ctx.reply(`The mentioned user doesn't have an account set up yet.`);
-      return;
+    const mentionedUsers = await Promise.all(
+      mentions
+        .map((mention) => mention.text.replace('@', ''))
+        .map((handle) => getUserByHandler(handle))
+    );
+    for (const mentionedUser of mentionedUsers) {
+      if (!mentionedUser.success) {
+        await giveAttestation({
+          recipient: mentionedUser.account!,
+          attester: me.user_id!,
+          attestationType: config.UIDs.ATTEST_EVENT,
+        });
+      }
     }
-
-    // Send the ATTEST_EVENT attestation
-    const result = await giveAttestation(recipientId, senderId, config.UIDs.ATTEST_EVENT);
-
-    if (result.success) {
-      await ctx.reply(`Attestation to @${mentionedUsername} has been submitted successfully!`);
-    } else {
-      await ctx.reply('Failed to submit attestation. Please try again later.');
-    }
+    await ctx.reply(
+      `Attestation to ${mentions
+        .map((mention) => mention.text)
+        .join(', ')} has been submitted successfully!`
+    );
+    return;
   } catch (error) {
     console.error('Error in attest command:', error);
     await ctx.reply('An error occurred while processing your request.');
