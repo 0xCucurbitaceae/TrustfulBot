@@ -2,7 +2,13 @@ import { TrustfulResolverABI } from './lib/TrustfulResolverABI';
 import { Context } from 'grammy';
 import axios from 'axios';
 import { getUserByHandler, saveUserData } from './supabase';
-import { addVillager, configs, getTitles, giveAttestation } from './trustful';
+import {
+  addVillager,
+  attest,
+  configs,
+  getTitles,
+  giveAttestation,
+} from './trustful';
 import { sendOp } from './send-op';
 
 export const PLATFORM = 'ZUITZERLAND';
@@ -84,6 +90,7 @@ commands['addTitle'] = async (ctx: Context) => {
     await ctx.reply('Please provide a title');
     return;
   }
+  // TODO: limit to managers
   try {
     await sendOp([
       {
@@ -121,9 +128,10 @@ commands['titles'] = async (ctx: Context) => {
 commands['attest'] = async (ctx: Context) => {
   try {
     console.log('ctx', ctx.entities());
-    await ctx.reply(
-      'Please mention a user to attest. Example: /attest @username'
-    );
+    const title = 'hey';
+    const comment = 'something';
+    console.log(ctx.message?.text);
+    console.log(ctx.entities());
     const mentions = ctx
       .entities()
       .filter((entity) => entity.type === 'mention');
@@ -145,13 +153,14 @@ commands['attest'] = async (ctx: Context) => {
         .map((mention) => mention.text.replace('@', ''))
         .map((handle) => getUserByHandler(handle))
     );
+    console.log('Attesting', title, comment, mentionedUsers);
     for (const mentionedUser of mentionedUsers) {
-      if (!mentionedUser.success) {
-        await giveAttestation({
-          recipient: mentionedUser.account!,
-          attester: me.account!,
-          attestationType: 'ATTEST_VILLAGER',
-          args: ['Check in'],
+      if (mentionedUser.success) {
+        await attest({
+          recipient: mentionedUser.address!,
+          attester: me.address!,
+          title,
+          comment,
         });
       }
     }

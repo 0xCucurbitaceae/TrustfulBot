@@ -68,7 +68,7 @@ export const getUserByHandler = async (
 ): Promise<{
   success: boolean;
   user_id?: string;
-  account?: string;
+  address?: string;
   error?: any;
 }> => {
   try {

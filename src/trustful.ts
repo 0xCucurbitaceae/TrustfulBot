@@ -213,6 +213,29 @@ export const addVillager = async (recipient: string) => {
   });
 };
 
+export const attest = async ({
+  recipient,
+  attester,
+  title,
+  comment = "NO_COMMENT",
+}: {
+  recipient: string;
+  attester: string;
+  title: string;
+  comment: string;
+}) => {
+  const titles = await getTitles()
+  if(!titles.includes(title)) {
+    throw new Error('Title not found');
+  }
+  await giveAttestation({
+    recipient,
+    attester,
+    attestationType: "ATTEST_EVENT",
+    args: [title, comment],
+  });
+};
+
 /**
  * Return all titles available to the users
  */
@@ -220,51 +243,4 @@ export const getTitles = async () => {
   const contract = getResolverContract();
   const titles = await contract.getAllAttestationTitles();
   return titles;
-};
-
-export const addVillagerCommand = async (ctx: Context) => {
-  try {
-    // Check if there's a mentioned user
-    const message = ctx.message?.text || '';
-    const mentionMatch = message.match(/@([\w\d_]+)/);
-
-    if (!mentionMatch) {
-      await ctx.reply('Please mention a user to add as a villager. Example: /addvillager @username');
-      return;
-    }
-
-    const mentionedUsername = mentionMatch[1];
-
-    // Get the sender's ID
-    const senderId = ctx.from?.id.toString()!;
-
-    // Check if the sender has an account
-    const senderAccount = await getAbstractAccount(senderId, PLATFORM);
-    if (!senderAccount.exists) {
-      await ctx.reply('You need to set up your account first. Use the /setup command.');
-      return;
-    }
-
-    // For demonstration purposes, we'll use the mentioned username as the recipient ID
-    const recipientId = mentionedUsername;
-
-    // Attempt to get the recipient's account
-    const recipientAccount = await getAbstractAccount(recipientId, PLATFORM);
-    if (!recipientAccount.exists) {
-      await ctx.reply(`The mentioned user doesn't have an account set up yet.`);
-      return;
-    }
-
-    // Send the ATTEST_VILLAGER attestation
-    const result = await addVillager(recipientId, senderId);
-
-    if (result.success) {
-      await ctx.reply(`@${mentionedUsername} has been successfully added as a villager!`);
-    } else {
-      await ctx.reply('Failed to add villager. Please try again later.');
-    }
-  } catch (error) {
-    console.error('Error in add villager command:', error);
-    await ctx.reply('An error occurred while processing your request.');
-  }
 };
