@@ -11,7 +11,11 @@ dotenv.config();
 if (!process.env.BOT_TOKEN) {
   throw new Error('BOT_TOKEN must be set in environment variables');
 }
-const bot = new Bot(process.env.BOT_TOKEN!);
+const bot = new Bot(process.env.BOT_TOKEN!, {
+  client: {
+    timeoutSeconds: 30,
+  },
+});
 
 axios.defaults.baseURL = `https://api.test.bless.net`;
 axios.defaults.headers.common['X-API-KEY'] = process.env.BLESSNET_SCAN_API_KEY;

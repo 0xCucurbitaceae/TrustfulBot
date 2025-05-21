@@ -1,8 +1,6 @@
-import { ethers } from 'ethers';
 import { TrustfulResolverABI } from './lib/TrustfulResolverABI';
 import { Context } from 'grammy';
 import axios from 'axios';
-import { getAbstractAccount } from './get-abstract-account';
 import { getUserByHandler, saveUserData } from './supabase';
 import { addVillager, configs, getTitles, giveAttestation } from './trustful';
 import { sendOp } from './send-op';
