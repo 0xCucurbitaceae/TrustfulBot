@@ -3,12 +3,7 @@ import { Menu } from '@grammyjs/menu';
 
 import dotenv from 'dotenv';
 import axios from 'axios';
-import {
-  setupAccount,
-  attestCommand,
-  addTitle,
-  getTitlesCommand,
-} from './commands';
+import { commands } from './commands';
 
 // Load environment variables
 dotenv.config();
@@ -21,8 +16,6 @@ const bot = new Bot(process.env.BOT_TOKEN!);
 axios.defaults.baseURL = `https://api.test.bless.net`;
 axios.defaults.headers.common['X-API-KEY'] = process.env.BLESSNET_SCAN_API_KEY;
 
-const menu = new Menu('main').text('Setup', setupAccount);
-
 const tryAndReply =
   (fn: (ctx: Context) => Promise<void>) => async (ctx: Context) => {
     try {
@@ -33,17 +26,19 @@ const tryAndReply =
     }
   };
 
-bot.use(menu);
-bot.command('setup', tryAndReply(setupAccount));
-bot.command('attest', tryAndReply(attestCommand));
-bot.command('addTitle', tryAndReply(addTitle));
-bot.command('titles', tryAndReply(getTitlesCommand));
+// let menu = new Menu('main');
+Object.entries(commands).forEach(
+  ([command, handler]: [string, (ctx: Context) => Promise<void>]) => {
+    // menu = menu.text(command, tryAndReply(handler));
+    console.log('subscribing to ', command);
+    bot.command(command, tryAndReply(handler));
+    // bot.use(menu);
+  }
+);
 
+// must be last
 bot.on('message', (ctx) => {
   console.log('message', ctx);
-  ctx.reply('Please use the menu to setup your blessed account!', {
-    reply_markup: menu,
-  });
+  ctx.reply('Please use the menu to setup your blessed account!', {});
 });
-
 export default bot;

@@ -11,10 +11,10 @@ export const PLATFORM = 'ZUITZERLAND';
 const chain = '11145513';
 
 const config = configs[chain];
-// const resolverContract = () =>
-//   new ethers.Contract(config.resolver, TrustfulResolverABI);
 
-export const setupAccount = async (ctx: Context) => {
+export const commands: any = {};
+
+commands['setup'] = async (ctx: Context) => {
   try {
     // Get the user ID from the context
     const tgId = ctx.from?.id.toString();
@@ -79,14 +79,14 @@ export const setupAccount = async (ctx: Context) => {
   }
 };
 
-export const addTitle = async (ctx: Context) => {
+commands['addTitle'] = async (ctx: Context) => {
   const title = ctx.message?.text?.split(' ')[1];
   if (!title) {
     await ctx.reply('Please provide a title');
     return;
   }
   try {
-    const res = await sendOp([
+    await sendOp([
       {
         account: process.env.BLESSNET_API_ACCOUNT!,
         target: config.resolver,
@@ -96,27 +96,11 @@ export const addTitle = async (ctx: Context) => {
       },
     ]);
 
-    const deliveryId = res.deliveryIds[0];
-
-    console.log(deliveryId);
-    // poll delivery status
-    const pollInterval = setInterval(async () => {
-      const response = await axios.get(`/deliveries/${deliveryId}`);
-      const status = response.data.status;
-      console.log(status);
-      if (status === 'delivered') {
-        clearInterval(pollInterval);
-        await ctx.reply('Title added successfully');
-      }
-      if (status === 'failed') {
-        clearInterval(pollInterval);
-        await ctx.reply('Tx to add title failed');
-      }
-    }, 500);
+    await ctx.reply('Title added successfully');
     return;
   } catch (error) {
     console.error('Error adding title:', error);
-    await ctx.reply('Failed to add title');
+    await ctx.reply(error.message || 'Failed to add title');
     return;
   }
 };
@@ -124,9 +108,11 @@ export const addTitle = async (ctx: Context) => {
 /**
  * Return all titles available to the users
  */
-export const getTitlesCommand = async (ctx: Context) => {
+commands['titles'] = async (ctx: Context) => {
   const titles = await getTitles();
-  await ctx.reply(`Available titles are:\n${titles.map((title) => `• ${title}`).join('\n')}`);
+  await ctx.reply(
+    `Available titles are:\n${titles.map((title) => `• ${title}`).join('\n')}`
+  );
 };
 
 // giveAttestation function has been moved to trustful.ts
@@ -135,7 +121,7 @@ export const getTitlesCommand = async (ctx: Context) => {
  * Command handler for /attest
  * Accepts a mentioned user, gets their address, and sends an ATTEST_EVENT attestation
  */
-export const attestCommand = async (ctx: Context) => {
+commands['attest'] = async (ctx: Context) => {
   try {
     console.log('ctx', ctx.entities());
     await ctx.reply(
