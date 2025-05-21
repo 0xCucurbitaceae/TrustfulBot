@@ -2,6 +2,13 @@
 
 A Telegram bot for the Blessnet platform that handles user setup and attestations.
 
+## TODO:
+
+- [] gate on groupID
+- [] prevent non-managers to addTitles
+- [] vote on new titles?
+- [] react on an attestation to confirm it
+
 ## Supabase Setup
 
 This project uses Supabase for storing handler-userId mappings. Follow these steps to set up your Supabase database:

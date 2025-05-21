@@ -1,5 +1,5 @@
 import { ethers } from 'ethers';
-import { TrustfulResolverABI } from './TrustfulResolverABI';
+import { TrustfulResolverABI } from './lib/TrustfulResolverABI';
 import { Context } from 'grammy';
 import axios from 'axios';
 import { getAbstractAccount } from './get-abstract-account';
@@ -36,6 +36,7 @@ commands['setup'] = async (ctx: Context) => {
     const handlerId = ctx.from?.username;
 
     console.log('Account setup response:', handlerId);
+    // TODO: gate on group
     if (handlerId && address) {
       // Save the user data to Supabase including the account
       const mappingResult = await saveUserData(
@@ -115,8 +116,6 @@ commands['titles'] = async (ctx: Context) => {
   );
 };
 
-// giveAttestation function has been moved to trustful.ts
-
 /**
  * Command handler for /attest
  * Accepts a mentioned user, gets their address, and sends an ATTEST_EVENT attestation
@@ -152,8 +151,9 @@ commands['attest'] = async (ctx: Context) => {
       if (!mentionedUser.success) {
         await giveAttestation({
           recipient: mentionedUser.account!,
-          attester: me.user_id!,
-          attestationType: config.UIDs.ATTEST_EVENT,
+          attester: me.account!,
+          attestationType: 'ATTEST_VILLAGER',
+          args: ['Check in'],
         });
       }
     }

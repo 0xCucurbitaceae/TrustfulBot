@@ -12,6 +12,6 @@
     "outDir": "build",
     "rootDir": "src"
   },
-  "include": ["src/**/*", "api/bot.ts"],
+  "include": ["src/**/*", "api/webhook.ts"],
   "exclude": ["node_modules"]
 }

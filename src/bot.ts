@@ -18,12 +18,15 @@ axios.defaults.headers.common['X-API-KEY'] = process.env.BLESSNET_SCAN_API_KEY;
 
 const tryAndReply =
   (fn: (ctx: Context) => Promise<void>) => async (ctx: Context) => {
-    try {
-      await fn(ctx);
-    } catch (error) {
-      console.error('Error in command:', error);
-      await ctx.reply('An error occurred while processing your request.');
-    }
+    await Promise.race([
+      fn(ctx),
+      new Promise((_, reject) =>
+        setTimeout(async () => {
+          await ctx.reply('An error occurred while processing your request.');
+          reject(new Error('Timeout'));
+        }, 10000)
+      ),
+    ]);
   };
 
 // let menu = new Menu('main');
