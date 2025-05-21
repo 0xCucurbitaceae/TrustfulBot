@@ -35,6 +35,12 @@ export interface BadgeTitle {
   allowedRole: string[];
 }
 
+/************************
+ *                      *
+ *        UTILS         *
+ *                      *
+ ***********************/
+
 export const ZUVILLAGE_BADGE_TITLES: () => BadgeTitle[] = () => [
   {
     title: 'Manager',
@@ -118,6 +124,9 @@ export const configs = {
 
 const config = configs[chain];
 
+const getResolverContract = () =>
+  new ethers.Contract(config.resolver, TrustfulResolverABI, config.provider);
+
 interface AttestationRequest {
   schema: string;
   data: AttestationRequestData;
@@ -175,12 +184,27 @@ export const giveAttestation = async ({
   ]);
 };
 
+/************************
+ *                      *
+ *       FEATURES       *
+ *                      *
+ ***********************/
+
 /**
  * Adds a villager attestation to a recipient
  * @param recipient The recipient's ID
  */
 export const addVillager = async (recipient: string) => {
   console.log('Adding villager', recipient);
+  const contract = getResolverContract();
+  const isVillager = await contract.hasRole(ROLES.VILLAGER, recipient);
+  if (isVillager) {
+    console.log('Already a villager');
+    return {
+      success: false,
+      message: 'User is already a villager',
+    };
+  }
   await giveAttestation({
     recipient,
     attester: process.env.BLESSNET_API_ACCOUNT!,
@@ -193,11 +217,7 @@ export const addVillager = async (recipient: string) => {
  * Return all titles available to the users
  */
 export const getTitles = async () => {
-  const contract = new ethers.Contract(
-    config.resolver,
-    TrustfulResolverABI,
-    config.provider
-  );
+  const contract = getResolverContract();
   const titles = await contract.getAllAttestationTitles();
   return titles;
 };
