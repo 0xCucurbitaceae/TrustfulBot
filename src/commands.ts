@@ -4,7 +4,7 @@ import { Context } from 'grammy';
 import axios from 'axios';
 import { getAbstractAccount } from './get-abstract-account';
 import { getUserByHandler, saveUserData } from './supabase';
-import { addVillager, configs, giveAttestation } from './trustful';
+import { addVillager, configs, getTitles, giveAttestation } from './trustful';
 import { sendOp } from './send-op';
 
 export const PLATFORM = 'ZUITZERLAND';
@@ -119,6 +119,14 @@ export const addTitle = async (ctx: Context) => {
     await ctx.reply('Failed to add title');
     return;
   }
+};
+
+/**
+ * Return all titles available to the users
+ */
+export const getTitlesCommand = async (ctx: Context) => {
+  const titles = await getTitles();
+  await ctx.reply(`Available titles are:\n${titles.map((title) => `• ${title}`).join('\n')}`);
 };
 
 // giveAttestation function has been moved to trustful.ts

@@ -2,7 +2,7 @@ import { ethers } from 'ethers';
 import { TrustfulResolverABI } from './TrustfulResolverABI';
 import axios from 'axios';
 import { getAbstractAccount } from './get-abstract-account';
-import { PLATFORM } from './attestations';
+import { PLATFORM } from './commands';
 import { Context } from 'grammy';
 import dotenv from 'dotenv';
 
@@ -52,7 +52,6 @@ const networks = {
     },
   }),
 };
-
 
 export enum ROLES {
   ROOT = '0x79e553c6f53701daa99614646285e66adb98ff0fcc1ef165dd2718e5c873bee6',
@@ -253,26 +252,17 @@ export const addVillager = async (recipient: string) => {
 };
 
 /**
- * Command handler for adding a villager attestation
- * @param ctx The Telegram context
+ * Return all titles available to the users
  */
-/**
- * Get all titles for a user
- * @param address The user's address
- * @param chainId The chain ID to query
- * @returns Array of titles
- */
-export const getTitles = async (address: string, chainId = chain) => {
-  try {
-    const contract = resolverContract(chainId);
-    const titles = await contract.getTitles(address);
-    return { success: true, titles };
-  } catch (error) {
-    console.error('Error getting titles:', error);
-    return { success: false, error };
-  }
+export const getTitles = async () => {
+  const contract = new ethers.Contract(
+    config.resolver,
+    TrustfulResolverABI,
+    config.provider
+  );
+  const titles = await contract.getAllAttestationTitles();
+  return titles;
 };
-
 /**
  * Command handler for adding a title to a user
  * @param ctx The Telegram context

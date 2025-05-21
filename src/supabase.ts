@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
-import { PLATFORM } from './attestations';
+import { PLATFORM } from './commands';
 dotenv.config();
 
 // Initialize the Supabase client
