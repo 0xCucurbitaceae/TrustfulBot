@@ -1,27 +1,21 @@
 'use client';
 
-import { useState, useCallback } from 'react';
-import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Hex, Address, parseEventLogs, Log, zeroAddress } from 'viem';
-import ENV from '../../lib/env';
-import {
-  Loader2,
-  CheckCircle2,
-  XCircle,
-  Copy,
-  AlertCircle,
-} from 'lucide-react';
-import {
-  useAccount,
-  useChainId,
-  usePublicClient,
-  useWalletClient,
-} from 'wagmi';
-import { SchemaRegistryAbi } from './SchemaRegistryAbi';
-import { ResolverFactoryABI } from './ResolverFactoryABI';
-import { TrustfulResolverABI } from '@/abis/TrustfulResolverABI';
+import { Button } from '@/components/ui/button';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
+import {
+  AlertCircle,
+  CheckCircle2,
+  Copy,
+  ExternalLink,
+  Loader2,
+  XCircle,
+} from 'lucide-react';
+import { useCallback, useMemo, useState } from 'react';
+import { Address, Hex, Log, parseEventLogs } from 'viem';
+import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
+import ENV from '../../lib/env';
+import { ResolverFactoryABI } from './ResolverFactoryABI';
 
 const SCHEMA_REGISTRY_ADDRESS = ENV.SCHEMA_REGISTRY_ADDRESS as Address;
 const EAS_CONTRACT_ADDRESS = ENV.EAS as Address;
@@ -65,9 +59,6 @@ const DeploySchemaPage = () => {
   const [resolverAddress, setResolverAddress] = useState<Address | null>(null);
   const [schemaUIDs, setSchemaUIDs] = useState<Record<string, Hex>>({});
   const [copied, setCopied] = useState(false);
-  const [resolverActionSchemas, setResolverActionSchemas] = useState<
-    Record<string, Hex[]>
-  >({});
 
   const resetDeploymentState = useCallback(() => {
     setIsDeploying(false);
@@ -75,12 +66,61 @@ const DeploySchemaPage = () => {
     setResolverAddress(null);
     setSchemaUIDs({});
     setCopied(false);
-    setResolverActionSchemas({});
   }, []);
 
-  const envOutput = Object.entries(schemaUIDs)
-    .map(([key, value]) => `${key}=${value}`)
-    .join('\n');
+  const envOutput = useMemo(() => {
+    let output = 'fill the following variables here with your own values:\n\n';
+    output +=
+      'BOT_TOKEN=\nWEBHOOK_HOST=\nPLATFORM=\nGROUP_ID=\nBLESSNET_SCAN_API_KEY=\nBLESSNET_API_ACCOUNT=\n\n';
+    const filteredSchemaUIDs = { ...schemaUIDs };
+    // NEXT_PUBLIC_RESOLVER_ADDRESS is already excluded from schemaUIDs when it's set after deployment
+
+    output += Object.entries(filteredSchemaUIDs)
+      .map(([key, value]) => `${key}=${value}`)
+      .join('\n');
+    return output;
+  }, [schemaUIDs]);
+
+  const handleDeployToVercel = () => {
+    // Condition for enabling button already covers this, but good for direct calls
+    if (Object.keys(schemaUIDs).length === 0 && !resolverAddress) return;
+
+    const repoUrl = 'https://github.com/0xCucurbitaceae/TrustfulBot';
+    const params = new URLSearchParams();
+    params.append('repository-url', repoUrl);
+
+    const envVarsToSetInVercel = { ...schemaUIDs };
+    // NEXT_PUBLIC_RESOLVER_ADDRESS is already excluded from schemaUIDs
+
+    const envKeysForVercelPrompt = [
+      'BOT_TOKEN',
+      'WEBHOOK_HOST',
+      'PLATFORM',
+      'GROUP_ID',
+      'BLESSNET_SCAN_API_KEY',
+      'BLESSNET_API_ACCOUNT',
+      ...Object.keys(envVarsToSetInVercel), // These will be pre-filled
+    ];
+    params.append('env', envKeysForVercelPrompt.join(','));
+
+    // Pre-fill values for contract-related vars
+    for (const [key, value] of Object.entries(envVarsToSetInVercel)) {
+      params.append(key, value);
+    }
+    // BOT_TOKEN, WEBHOOK_HOST, etc., will be prompted by Vercel as they are in 'env' but not pre-filled here
+
+    params.append(
+      'envDescription',
+      'Environment variables for your TrustfulBot instance deployed via Attest-Bot.'
+    );
+    params.append(
+      'envLink',
+      'https://github.com/0xCucurbitaceae/TrustfulBot#environment-variables'
+    );
+
+    const vercelDeployUrl = `https://vercel.com/new/clone?${params.toString()}`;
+    window.open(vercelDeployUrl, '_blank');
+  };
 
   const handleDeploy = async () => {
     if (!isConnected || !walletClient || !publicClient || !accountAddress) {
@@ -93,7 +133,6 @@ const DeploySchemaPage = () => {
     setResolverAddress(null);
     setSchemaUIDs({});
     setCopied(false);
-    setResolverActionSchemas({});
 
     let deployedResolverAddress: Address | null = null;
     const deployedSchemaUIDs: Record<string, Hex> = {};
@@ -161,7 +200,6 @@ const DeploySchemaPage = () => {
         VILLAGER_UID: event.args.schemaUIDs[1],
         EVENT_UID: event.args.schemaUIDs[2],
         RESPONSE_UID: event.args.schemaUIDs[3],
-        NEXT_PUBLIC_RESOLVER_ADDRESS: deployedResolverAddress,
         NEXT_PUBLIC_EAS_CONTRACT_ADDRESS: EAS_CONTRACT_ADDRESS,
         NEXT_PUBLIC_SCHEMA_REGISTRY_ADDRESS: SCHEMA_REGISTRY_ADDRESS,
         NEXT_PUBLIC_FACTORY_CONTRACT_ADDRESS: FACTORY_CONTRACT_ADDRESS,
@@ -261,17 +299,6 @@ const DeploySchemaPage = () => {
             </Alert>
           )}
 
-        {resolverAddress && (
-          <div className="mb-4 p-3 bg-secondary rounded-md">
-            <h3 className="font-semibold text-sm">
-              Resolver Contract Address:
-            </h3>
-            <p className="text-xs text-muted-foreground break-all">
-              {resolverAddress}
-            </p>
-          </div>
-        )}
-
         {Object.keys(schemaUIDs).length > 0 && (
           <div className="mb-4 p-3 bg-secondary rounded-md">
             <h3 className="font-semibold text-sm mb-1">
@@ -292,62 +319,47 @@ const DeploySchemaPage = () => {
           </div>
         )}
 
-        {Object.keys(resolverActionSchemas).length > 0 && (
-          <div className="mb-4 p-3 bg-muted/50 rounded-md">
-            <h3 className="font-semibold text-sm mb-1">
-              Schemas by Action from Resolver:
-            </h3>
-            {Object.entries(resolverActionSchemas).map(([actionKey, uids]) => (
-              <div key={actionKey} className="text-xs mb-2">
-                <p className="font-medium">{actionKey}:</p>
-                {uids.length > 0 ? (
-                  <ul className="list-disc list-inside pl-2">
-                    {uids.map((uid, index) => (
-                      <li
-                        key={index}
-                        className="text-muted-foreground break-all"
-                      >
-                        {uid.startsWith('Error:') ? (
-                          <span className="text-red-500">{uid}</span>
-                        ) : (
-                          uid
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-muted-foreground italic">
-                    No UIDs returned for this action.
-                  </p>
-                )}
+        {resolverAddress && Object.keys(schemaUIDs).length > 0 && (
+          <div
+            className="mb-4 p-4 bg-muted/50 rounded-md"
+            data-component-name="DeploySchemaPage"
+          >
+            <div className="flex justify-between items-start mb-2">
+              <h3 className="font-semibold text-lg">
+                Deployed Variables (.env format)
+              </h3>
+              <div className="flex space-x-2">
+                <Button
+                  onClick={() => {
+                    navigator.clipboard.writeText(envOutput);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                  }}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-1.5"
+                  disabled={!envOutput}
+                >
+                  <Copy size={14} />
+                  {copied ? 'Copied!' : 'Copy .env'}
+                </Button>
+                <Button
+                  onClick={handleDeployToVercel}
+                  variant="default"
+                  size="sm"
+                  className="flex items-center gap-1.5"
+                  disabled={
+                    Object.keys(schemaUIDs).length === 0 && !resolverAddress
+                  }
+                >
+                  <ExternalLink size={14} />
+                  Deploy to Vercel
+                </Button>
               </div>
-            ))}
-          </div>
-        )}
-
-        {envOutput && (
-          <div className="mt-6">
-            <h2 className="text-xl font-semibold mb-2">
-              Environment Variables
-            </h2>
-            <p className="text-sm text-muted-foreground mb-3">
-              Copy these values into your Vercel project settings or a local{' '}
-              <code>.env.local</code> file for your frontend application.
-            </p>
-            <div className="relative bg-muted p-4 rounded-md font-mono text-sm whitespace-pre-wrap break-all">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleCopy}
-                className="absolute top-2 right-2 h-7 w-7 p-0"
-              >
-                <Copy className="h-4 w-4" />
-                {copied && <span className="text-xs ml-1">Copied!</span>}
-              </Button>
-              {envOutput.split('\\n').map((line, index) => (
-                <div key={index}>{line}</div>
-              ))}
             </div>
+            <pre className="text-xs bg-background p-2 rounded overflow-x-auto">
+              <code>{envOutput}</code>
+            </pre>
           </div>
         )}
       </div>
