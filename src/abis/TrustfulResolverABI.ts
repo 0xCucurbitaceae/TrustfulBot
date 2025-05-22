@@ -1,7 +1,16 @@
 export const TrustfulResolverABI = [
   {
     type: 'constructor',
-    inputs: [{ name: 'eas', type: 'address', internalType: 'contract IEAS' }],
+    inputs: [
+      { name: 'eas', type: 'address', internalType: 'contract IEAS' },
+      {
+        name: 'schemaRegistry',
+        type: 'address',
+        internalType: 'contract ISchemaRegistry',
+      },
+      { name: 'deployer', type: 'address', internalType: 'address' },
+      { name: 'managers', type: 'address[]', internalType: 'address[]' },
+    ],
     stateMutability: 'nonpayable',
   },
   { type: 'receive', stateMutability: 'payable' },
@@ -86,6 +95,15 @@ export const TrustfulResolverABI = [
     name: 'getAllAttestationTitles',
     inputs: [],
     outputs: [{ name: '', type: 'string[]', internalType: 'string[]' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'getAllSchemas',
+    inputs: [
+      { name: 'action', type: 'uint8', internalType: 'enum IResolver.Action' },
+    ],
+    outputs: [{ name: '', type: 'bytes32[]', internalType: 'bytes32[]' }],
     stateMutability: 'view',
   },
   {
@@ -182,7 +200,7 @@ export const TrustfulResolverABI = [
     name: 'setSchema',
     inputs: [
       { name: 'uid', type: 'bytes32', internalType: 'bytes32' },
-      { name: 'action', type: 'uint256', internalType: 'uint256' },
+      { name: 'action', type: 'uint8', internalType: 'enum IResolver.Action' },
     ],
     outputs: [],
     stateMutability: 'nonpayable',
@@ -272,4 +290,4 @@ export const TrustfulResolverABI = [
   { type: 'error', name: 'InvalidRevocability', inputs: [] },
   { type: 'error', name: 'InvalidRole', inputs: [] },
   { type: 'error', name: 'NotPayable', inputs: [] },
-];
+] as const;

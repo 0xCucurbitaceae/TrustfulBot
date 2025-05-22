@@ -1,11 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Hex, Address, parseEventLogs, Log } from 'viem';
+import { Hex, Address, parseEventLogs, Log, zeroAddress } from 'viem';
 import ENV from '../../lib/env';
-import ResolverArtifact from './Resolver.json';
 import {
   Loader2,
   CheckCircle2,
@@ -13,21 +12,21 @@ import {
   Copy,
   AlertCircle,
 } from 'lucide-react';
-
-import StartDeploymentScreen from './components/StartDeploymentScreen';
-import DeploymentStepperComponent from './components/DeploymentStepperComponent';
-import DeployResolverStep from './components/DeployResolverStep';
-import RegisterSchemasStep, {
-  SchemaToRegister as ComponentSchemaToRegister,
-} from './components/RegisterSchemasStep';
-import DeploymentSummaryStep from './components/DeploymentSummaryStep';
-import { useAccount, useChains, usePublicClient, useWalletClient } from 'wagmi';
+import {
+  useAccount,
+  useChainId,
+  usePublicClient,
+  useWalletClient,
+} from 'wagmi';
 import { SchemaRegistryAbi } from './SchemaRegistryAbi';
+import { ResolverFactoryABI } from './ResolverFactoryABI';
+import { TrustfulResolverABI } from '@/abis/TrustfulResolverABI';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
 
 const SCHEMA_REGISTRY_ADDRESS = ENV.SCHEMA_REGISTRY_ADDRESS as Address;
 const EAS_CONTRACT_ADDRESS = ENV.EAS as Address;
 
-const LOCAL_STORAGE_KEY = 'deploySchemaProgress_v2';
+const FACTORY_CONTRACT_ADDRESS = ENV.NEXT_PUBLIC_FACTORY_ADDRESS as Address;
 
 const schemasToRegister = [
   {
@@ -56,394 +55,302 @@ const schemasToRegister = [
   },
 ];
 
-interface SchemaDeploymentInfo {
-  name: string;
-  status: 'pending' | 'loading' | 'success' | 'error';
-  uid?: Hex;
-  txHash?: Hex;
-  errorMessage?: string;
-}
-
-interface DeployedInfo {
-  resolverStatus: 'pending' | 'loading' | 'success' | 'error';
-  resolverAddress?: Address;
-  resolverTxHash?: Hex;
-  resolverError?: string;
-  schemas: SchemaDeploymentInfo[];
-}
-
-const initialSchemaState = (): SchemaDeploymentInfo[] =>
-  schemasToRegister.map((s) => ({ name: s.name, status: 'pending' }));
-
-const stepperSteps = [
-  'Deploy Resolver',
-  'Register Schemas',
-  'Summary & Deploy',
-];
-
 const DeploySchemaPage = () => {
   const { address: accountAddress, isConnected } = useAccount();
   const { data: walletClient } = useWalletClient();
   const publicClient = usePublicClient();
-  const chains = useChains();
 
-  const [deploymentStarted, setDeploymentStarted] = useState(false);
-  const [currentOverallStep, setCurrentOverallStep] = useState(0);
-  const [pageError, setPageError] = useState<string | undefined>(undefined);
-  const [deployedInfo, setDeployedInfo] = useState<DeployedInfo>(() => {
-    const savedProgressRaw =
-      typeof window !== 'undefined'
-        ? localStorage.getItem(LOCAL_STORAGE_KEY)
-        : null;
-    if (savedProgressRaw) {
-      try {
-        const savedProgress = JSON.parse(savedProgressRaw);
-        if (savedProgress && savedProgress.deployedInfo) {
-          return {
-            ...savedProgress.deployedInfo,
-            resolverStatus:
-              savedProgress.deployedInfo.resolverStatus === 'loading'
-                ? 'pending'
-                : savedProgress.deployedInfo.resolverStatus,
-            schemas: savedProgress.deployedInfo.schemas.map(
-              (s: SchemaDeploymentInfo) => ({
-                ...s,
-                status: s.status === 'loading' ? 'pending' : s.status,
-              })
-            ),
-          };
-        }
-      } catch (e) {
-        console.error(
-          'Failed to parse saved progress during initial state setup:',
-          e
-        );
-        if (typeof window !== 'undefined')
-          localStorage.removeItem(LOCAL_STORAGE_KEY);
-      }
-    }
-    return {
-      resolverStatus: 'pending',
-      schemas: initialSchemaState(),
-    };
-  });
-  const [envOutput, setEnvOutput] = useState('');
+  const [isDeploying, setIsDeploying] = useState(false);
+  const [deploymentError, setDeploymentError] = useState<string | null>(null);
+  const [resolverAddress, setResolverAddress] = useState<Address | null>(null);
+  const [schemaUIDs, setSchemaUIDs] = useState<Record<string, Hex>>({});
+  const [copied, setCopied] = useState(false);
+  const [resolverActionSchemas, setResolverActionSchemas] = useState<
+    Record<string, Hex[]>
+  >({});
 
   const resetDeploymentState = useCallback(() => {
-    setDeployedInfo({
-      resolverStatus: 'pending',
-      schemas: initialSchemaState(),
-    });
-    setCurrentOverallStep(0);
-    setEnvOutput('');
-    setDeploymentStarted(false);
-    if (typeof window !== 'undefined')
-      localStorage.removeItem(LOCAL_STORAGE_KEY);
+    setIsDeploying(false);
+    setDeploymentError(null);
+    setResolverAddress(null);
+    setSchemaUIDs({});
+    setCopied(false);
+    setResolverActionSchemas({});
   }, []);
 
-  useEffect(() => {
-    const savedProgressRaw =
-      typeof window !== 'undefined'
-        ? localStorage.getItem(LOCAL_STORAGE_KEY)
-        : null;
-    if (savedProgressRaw) {
-      try {
-        const savedProgress = JSON.parse(savedProgressRaw);
-        if (
-          savedProgress &&
-          savedProgress.deployedInfo &&
-          typeof savedProgress.currentOverallStep === 'number' &&
-          typeof savedProgress.deploymentStarted === 'boolean'
-        ) {
-          const {
-            deployedInfo: loadedDeployedInfo,
-            currentOverallStep: loadedStep,
-            envOutput: loadedEnvOutput,
-            deploymentStarted: loadedDeploymentStarted,
-          } = savedProgress;
+  const envOutput = Object.entries(schemaUIDs)
+    .map(([key, value]) => `${key}=${value}`)
+    .join('\n');
 
-          const validatedSchemas = loadedDeployedInfo.schemas.map((s: any) => ({
-            ...s,
-            status: ['pending', 'success', 'error'].includes(s.status)
-              ? s.status
-              : 'pending',
-          }));
-          const validatedResolverStatus = [
-            'pending',
-            'success',
-            'error',
-          ].includes(loadedDeployedInfo.resolverStatus)
-            ? loadedDeployedInfo.resolverStatus
-            : 'pending';
-
-          if (
-            Array.isArray(validatedSchemas) &&
-            validatedSchemas.length === schemasToRegister.length
-          ) {
-            setDeployedInfo((currentInfo) => {
-              if (
-                JSON.stringify(currentInfo.resolverStatus) ===
-                  JSON.stringify(validatedResolverStatus) &&
-                JSON.stringify(currentInfo.schemas) ===
-                  JSON.stringify(validatedSchemas)
-              ) {
-                return currentInfo;
-              }
-              return {
-                ...loadedDeployedInfo,
-                resolverStatus: validatedResolverStatus,
-                schemas: validatedSchemas,
-              };
-            });
-            setCurrentOverallStep(loadedStep);
-            if (loadedEnvOutput) setEnvOutput(loadedEnvOutput);
-            setDeploymentStarted(loadedDeploymentStarted);
-          } else {
-            console.warn(
-              'Invalid or mismatched saved progress structure (schemas), clearing localStorage.'
-            );
-            resetDeploymentState();
-          }
-        } else {
-          console.warn(
-            'Invalid saved progress structure, clearing localStorage.'
-          );
-          resetDeploymentState();
-        }
-      } catch (error) {
-        console.error(
-          'Failed to parse saved progress, clearing localStorage:',
-          error
-        );
-        resetDeploymentState();
-      }
-    }
-  }, [resetDeploymentState]);
-
-  useEffect(() => {
-    if (deploymentStarted && typeof window !== 'undefined') {
-      const progressToSave = {
-        deployedInfo: {
-          ...deployedInfo,
-          resolverStatus:
-            deployedInfo.resolverStatus === 'loading'
-              ? 'pending'
-              : deployedInfo.resolverStatus,
-          schemas: deployedInfo.schemas.map((s) => ({
-            ...s,
-            status: s.status === 'loading' ? 'pending' : s.status,
-          })),
-        },
-        currentOverallStep,
-        envOutput,
-        deploymentStarted,
-      };
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(progressToSave));
-    }
-  }, [deployedInfo, currentOverallStep, envOutput, deploymentStarted]);
-
-  const handleResolverDeployedCallback = useCallback(
-    (result: {
-      success: boolean;
-      address?: Address;
-      txHash?: Hex;
-      error?: string;
-    }) => {
-      setPageError(undefined);
-      if (result.success && result.address) {
-        setDeployedInfo((prev) => ({
-          ...prev,
-          resolverStatus: 'success',
-          resolverAddress: result.address,
-          resolverTxHash: result.txHash,
-          resolverError: undefined,
-        }));
-      } else {
-        setDeployedInfo((prev) => ({
-          ...prev,
-          resolverStatus: 'error',
-          resolverAddress: undefined,
-          resolverTxHash: result.txHash,
-          resolverError:
-            result.error || 'Unknown error during resolver deployment.',
-        }));
-        setPageError(
-          `Resolver deployment failed: ${result.error || 'Unknown error'}`
-        );
-      }
-    },
-    []
-  );
-
-  const handleSingleSchemaRegisteredCallback = useCallback(
-    (result: {
-      success: boolean;
-      schemaIndex: number;
-      uid?: Hex;
-      txHash?: Hex;
-      error?: string;
-    }) => {
-      setPageError(undefined); // Clear previous page errors
-      setDeployedInfo((prev) => {
-        const newSchemas = [...prev.schemas];
-        const schemaToUpdate = newSchemas[result.schemaIndex];
-
-        if (result.success && result.uid) {
-          newSchemas[result.schemaIndex] = {
-            ...schemaToUpdate,
-            status: 'success',
-            uid: result.uid,
-            txHash: result.txHash,
-            errorMessage: undefined,
-          };
-        } else {
-          newSchemas[result.schemaIndex] = {
-            ...schemaToUpdate,
-            status: 'error',
-            uid: undefined, // Clear UID on error
-            txHash: result.txHash, // Keep txHash if available
-            errorMessage:
-              result.error || `Failed to register ${schemaToUpdate.name}.`,
-          };
-          setPageError(
-            `Failed to register ${schemaToUpdate.name}: ${
-              result.error || 'Unknown error'
-            }`
-          );
-        }
-        return { ...prev, schemas: newSchemas };
-      });
-    },
-    []
-  );
-
-  useEffect(() => {
-    if (
-      deployedInfo.resolverStatus === 'success' &&
-      deployedInfo.resolverAddress &&
-      deployedInfo.schemas.every((s) => s.status === 'success' && s.uid)
-    ) {
-      let output = `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=${
-        ENV.WALLETCONNECT_PROJECT_ID || 'YOUR_WALLETCONNECT_PROJECT_ID'
-      }\n`;
-      output += `NEXT_PUBLIC_RPC_URL=${ENV.RPC_URL || 'YOUR_RPC_URL'}\n`;
-      output += `NEXT_PUBLIC_CHAIN_ID=${
-        (chains && chains[0]?.id) || ENV.CHAIN_ID || 'YOUR_CHAIN_ID'
-      }\n`;
-      output += `NEXT_PUBLIC_RESOLVER_ADDRESS=${deployedInfo.resolverAddress}\n`;
-      output += `NEXT_PUBLIC_SCHEMA_REGISTRY_ADDRESS=${SCHEMA_REGISTRY_ADDRESS}\n`;
-      output += `NEXT_PUBLIC_EAS_CONTRACT_ADDRESS=${EAS_CONTRACT_ADDRESS}\n`;
-
-      schemasToRegister.forEach((schema, index) => {
-        const deployedSchema = deployedInfo.schemas[index];
-        if (deployedSchema && deployedSchema.uid) {
-          output += `${schema.envVarName}=${deployedSchema.uid}\n`;
-        }
-      });
-      setEnvOutput(output);
-    }
-  }, [deployedInfo, accountAddress, chains]);
-
-  const handleDeployToVercel = () => {
-    if (!envOutput) {
-      setPageError('ENV variables not generated yet.');
+  const handleDeploy = async () => {
+    if (!isConnected || !walletClient || !publicClient || !accountAddress) {
+      setDeploymentError('Please connect your wallet.');
       return;
     }
-    const vercelProjectName = 'my-attestation-app';
-    const encodedEnv = encodeURIComponent(envOutput.replace(/\n/g, '\n'));
-    const vercelUrl = `https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fethereum-attestation-service%2Feas-typescript-template&env=${encodedEnv}&project-name=${vercelProjectName}&repository-name=${vercelProjectName}`;
-    window.open(vercelUrl, '_blank');
+
+    setIsDeploying(true);
+    setDeploymentError(null);
+    setResolverAddress(null);
+    setSchemaUIDs({});
+    setCopied(false);
+    setResolverActionSchemas({});
+
+    let deployedResolverAddress: Address | null = null;
+    const deployedSchemaUIDs: Record<string, Hex> = {};
+
+    try {
+      // 1. Deploy Resolver Contract via Factory
+      setDeploymentError('Deploying Resolver contract via Factory...');
+      if (
+        !FACTORY_CONTRACT_ADDRESS ||
+        FACTORY_CONTRACT_ADDRESS === '0xYOUR_FACTORY_CONTRACT_ADDRESS_HERE'
+      ) {
+        throw new Error(
+          'Factory contract address is not set. Please set NEXT_PUBLIC_FACTORY_ADDRESS in your .env file.'
+        );
+      }
+
+      // TODO: Confirm managerAddresses or make it configurable
+      const managerAddresses = [accountAddress];
+      console.log([
+        EAS_CONTRACT_ADDRESS,
+        SCHEMA_REGISTRY_ADDRESS,
+        accountAddress,
+        managerAddresses,
+      ]);
+      const factoryDeployTxHash = await walletClient.writeContract({
+        address: FACTORY_CONTRACT_ADDRESS,
+        abi: ResolverFactoryABI,
+        functionName: 'deployResolver',
+        args: [
+          EAS_CONTRACT_ADDRESS,
+          SCHEMA_REGISTRY_ADDRESS,
+          accountAddress,
+          managerAddresses,
+        ],
+        account: accountAddress,
+      });
+      console.log('factoryDeployTxHash', factoryDeployTxHash);
+
+      const factoryDeployReceipt = await publicClient.waitForTransactionReceipt(
+        {
+          hash: factoryDeployTxHash,
+        }
+      );
+
+      if (factoryDeployReceipt.status === 'reverted') {
+        throw new Error(
+          'Factory deployment call for Resolver failed. Check transaction on block explorer.'
+        );
+      }
+
+      // Parse event to get the new resolver address
+      // and the schema UIDs
+      const event = parseEventLogs({
+        abi: ResolverFactoryABI,
+        logs: factoryDeployReceipt.logs as Log[],
+        eventName: 'ResolverDeployed',
+      })[0];
+
+      deployedResolverAddress = event.args.resolver;
+      setResolverAddress(deployedResolverAddress);
+      setDeploymentError(null); // Clear 'Deploying...' message
+
+      setSchemaUIDs({
+        MANAGER_UID: event.args.schemaUIDs[0],
+        VILLAGER_UID: event.args.schemaUIDs[1],
+        EVENT_UID: event.args.schemaUIDs[2],
+        RESPONSE_UID: event.args.schemaUIDs[3],
+        NEXT_PUBLIC_RESOLVER_ADDRESS: deployedResolverAddress,
+        NEXT_PUBLIC_EAS_CONTRACT_ADDRESS: EAS_CONTRACT_ADDRESS,
+        NEXT_PUBLIC_SCHEMA_REGISTRY_ADDRESS: SCHEMA_REGISTRY_ADDRESS,
+        NEXT_PUBLIC_FACTORY_CONTRACT_ADDRESS: FACTORY_CONTRACT_ADDRESS,
+      });
+    } catch (error: any) {
+      console.error('Deployment failed:', error);
+      setDeploymentError(
+        error.message || 'An unknown error occurred during deployment.'
+      );
+      // Rollback partial state if necessary, or indicate partial success
+      if (!deployedResolverAddress) setResolverAddress(null);
+      // Keep successfully registered UIDs for display if some succeeded before failure
+    } finally {
+      setIsDeploying(false);
+    }
   };
 
-  const handleStartDeployment = () => {
-    setDeploymentStarted(true);
-    setCurrentOverallStep(0);
-    setPageError(undefined);
+  const handleCopy = () => {
+    navigator.clipboard.writeText(envOutput.replace(/\\n/g, '\n'));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleNextStep = () => {
-    setCurrentOverallStep((prev) =>
-      Math.min(prev + 1, stepperSteps.length - 1)
+  if (!isConnected) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)]">
+        <Alert variant="destructive" className="w-full max-w-md">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Wallet Not Connected</AlertTitle>
+          <AlertDescription>
+            Please connect your wallet to deploy contracts and register schemas.
+          </AlertDescription>
+        </Alert>
+
+        <ConnectButton />
+      </div>
     );
-  };
-
-  const handlePreviousStep = () => {
-    setCurrentOverallStep((prev) => Math.max(prev - 1, 0));
-  };
-
-  const schemasForStepComponent: ComponentSchemaToRegister[] =
-    schemasToRegister.map((s, index) => {
-      const deployedSchemaInfo = deployedInfo.schemas[index] || {
-        name: s.name,
-        status: 'pending',
-      };
-      return {
-        name: s.name,
-        schema: s.schema,
-        revocable: s.revocable,
-        envVarName: s.envVarName,
-        uid: deployedSchemaInfo.uid || null,
-        status: deployedSchemaInfo.status,
-        errorMessage: deployedSchemaInfo.errorMessage, // Pass error message
-      };
-    });
+  }
 
   return (
-    <div className="container mx-auto p-4 flex flex-col items-center space-y-6 min-h-screen">
-      <h1 className="text-3xl font-bold text-center">EAS Schema Deployment</h1>
+    <div className="container mx-auto p-4 max-w-2xl">
+      <h1 className="text-3xl font-bold mb-6 text-center">
+        Deploy Contracts & Register Schemas
+      </h1>
 
-      {pageError && (
-        <Alert variant="destructive" className="w-full max-w-2xl">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{pageError}</AlertDescription>
-        </Alert>
-      )}
+      <div className="bg-card p-6 rounded-lg shadow-md">
+        <Button
+          onClick={handleDeploy}
+          disabled={isDeploying || !isConnected || !walletClient}
+          className="w-full mb-4"
+          size="lg"
+        >
+          {isDeploying ? (
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+          ) : (
+            <CheckCircle2 className="mr-2 h-5 w-5" />
+          )}
+          {isDeploying ? 'Processing Deployment...' : 'Start Full Deployment'}
+        </Button>
 
-      {!deploymentStarted ? (
-        <StartDeploymentScreen onStart={handleStartDeployment} />
-      ) : (
-        <>
-          <DeploymentStepperComponent
-            currentStep={currentOverallStep}
-            steps={stepperSteps}
-          />
+        <Button
+          onClick={resetDeploymentState}
+          variant="outline"
+          className="w-full mb-6"
+          disabled={isDeploying}
+        >
+          Reset Deployment State
+        </Button>
 
-          {currentOverallStep === 0 && (
-            <DeployResolverStep
-              onResolverDeployed={handleResolverDeployedCallback}
-              initialStatus={
-                deployedInfo.resolverStatus === 'loading'
-                  ? 'pending'
-                  : deployedInfo.resolverStatus
-              }
-              deployedAddress={deployedInfo.resolverAddress}
-              onNext={handleNextStep}
-              isWalletConnected={isConnected}
-            />
+        {deploymentError && !isDeploying && (
+          <Alert variant="destructive" className="mb-4">
+            <XCircle className="h-4 w-4" />
+            <AlertTitle>Deployment Error</AlertTitle>
+            <AlertDescription>{deploymentError}</AlertDescription>
+          </Alert>
+        )}
+        {isDeploying && deploymentError && (
+          <Alert
+            variant="default"
+            className="mb-4 bg-blue-500/10 border-blue-500/50 text-blue-700 dark:text-blue-300"
+          >
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <AlertTitle>Deployment in Progress</AlertTitle>
+            <AlertDescription>{deploymentError}</AlertDescription>
+          </Alert>
+        )}
+
+        {(resolverAddress || Object.keys(schemaUIDs).length > 0) &&
+          !isDeploying &&
+          !deploymentError && (
+            <Alert variant="success" className="mb-4">
+              <CheckCircle2 className="h-4 w-4" />
+              <AlertTitle>Deployment Successful!</AlertTitle>
+              <AlertDescription>
+                Contracts deployed and schemas registered successfully.
+              </AlertDescription>
+            </Alert>
           )}
 
-          {currentOverallStep === 1 && (
-            <RegisterSchemasStep
-              schemas={schemasForStepComponent} // Pass the mapped schemas
-              onSingleSchemaRegistered={handleSingleSchemaRegisteredCallback} // Added callback
-              onNext={handleNextStep}
-              onPrevious={handlePreviousStep}
-              isWalletConnected={isConnected}
-              resolverAddress={deployedInfo.resolverAddress} // Pass resolver address
-            />
-          )}
+        {resolverAddress && (
+          <div className="mb-4 p-3 bg-secondary rounded-md">
+            <h3 className="font-semibold text-sm">
+              Resolver Contract Address:
+            </h3>
+            <p className="text-xs text-muted-foreground break-all">
+              {resolverAddress}
+            </p>
+          </div>
+        )}
 
-          {currentOverallStep === 2 && (
-            <DeploymentSummaryStep
-              envOutput={envOutput}
-              onDeployToVercel={handleDeployToVercel}
-              onStartOver={resetDeploymentState}
-              onPrevious={handlePreviousStep}
-            />
-          )}
-        </>
-      )}
+        {Object.keys(schemaUIDs).length > 0 && (
+          <div className="mb-4 p-3 bg-secondary rounded-md">
+            <h3 className="font-semibold text-sm mb-1">
+              Registered Schema UIDs:
+            </h3>
+            {schemasToRegister.map((schema) =>
+              schemaUIDs[schema.envVarName] ? (
+                <div key={schema.envVarName} className="text-xs mb-1">
+                  <span className="font-medium">
+                    {schema.name} ({schema.envVarName}):
+                  </span>
+                  <p className="text-muted-foreground break-all">
+                    {schemaUIDs[schema.envVarName]}
+                  </p>
+                </div>
+              ) : null
+            )}
+          </div>
+        )}
+
+        {Object.keys(resolverActionSchemas).length > 0 && (
+          <div className="mb-4 p-3 bg-muted/50 rounded-md">
+            <h3 className="font-semibold text-sm mb-1">
+              Schemas by Action from Resolver:
+            </h3>
+            {Object.entries(resolverActionSchemas).map(([actionKey, uids]) => (
+              <div key={actionKey} className="text-xs mb-2">
+                <p className="font-medium">{actionKey}:</p>
+                {uids.length > 0 ? (
+                  <ul className="list-disc list-inside pl-2">
+                    {uids.map((uid, index) => (
+                      <li
+                        key={index}
+                        className="text-muted-foreground break-all"
+                      >
+                        {uid.startsWith('Error:') ? (
+                          <span className="text-red-500">{uid}</span>
+                        ) : (
+                          uid
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-muted-foreground italic">
+                    No UIDs returned for this action.
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {envOutput && (
+          <div className="mt-6">
+            <h2 className="text-xl font-semibold mb-2">
+              Environment Variables
+            </h2>
+            <p className="text-sm text-muted-foreground mb-3">
+              Copy these values into your Vercel project settings or a local{' '}
+              <code>.env.local</code> file for your frontend application.
+            </p>
+            <div className="relative bg-muted p-4 rounded-md font-mono text-sm whitespace-pre-wrap break-all">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleCopy}
+                className="absolute top-2 right-2 h-7 w-7 p-0"
+              >
+                <Copy className="h-4 w-4" />
+                {copied && <span className="text-xs ml-1">Copied!</span>}
+              </Button>
+              {envOutput.split('\\n').map((line, index) => (
+                <div key={index}>{line}</div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
