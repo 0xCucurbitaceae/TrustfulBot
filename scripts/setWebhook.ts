@@ -4,6 +4,9 @@ import { URL } from 'url';
 
 // Load environment variables
 dotenv.config();
+dotenv.config({
+  path: '.env.local',
+});
 
 if (!process.env.BOT_TOKEN) {
   throw new Error('BOT_TOKEN must be set in environment variables');
@@ -11,11 +14,13 @@ if (!process.env.BOT_TOKEN) {
 
 async function setWebhook() {
   // Get webhook URL from command line arguments
-  const webhookUrl = process.argv[2];
+  const webhookUrl = process.env.NEXT_PUBLIC_VERCEL_URL
+    ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}/api/bot`
+    : process.env.WEBHOOK_HOST;
 
   if (!webhookUrl) {
     console.error('Please provide a webhook URL as a command line argument');
-    console.error('Example: ts-node scripts/setWebhook.ts https://your-domain.com/api/webhook');
+    console.error('Example: ts-node scripts/setWebhook.ts');
     process.exit(1);
   }
 
@@ -32,7 +37,7 @@ async function setWebhook() {
 
   try {
     const response = await axios.post(telegramApiUrl, {
-      url: webhookUrl
+      url: webhookUrl,
     });
 
     console.log('Webhook set response:', response.data);
