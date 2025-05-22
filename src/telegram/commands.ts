@@ -7,8 +7,9 @@ import { config, ROLES } from '../trusftul/constants';
 import { hasRole } from '../trusftul/utils';
 import { sendOp } from '../lib/send-op';
 import ENV from '../lib/env';
-import { ethers } from 'ethers';
+import { ethers, Contract, AddressLike } from 'ethers';
 import { EntryPointABI } from '../abis/EntryPoint';
+import { blessedAccountABI } from '../abis/BlessedAccount';
 
 export const commands: any = {};
 
@@ -39,14 +40,19 @@ commands['setup'] = async (ctx: Context) => {
     const promises: any[] = [];
     // TODO: gate on group
     if (handlerId && address) {
+      // Save the user data to Supabase including the account
+      promises.push(addVillager(address));
+      promises.push(saveUserData(handlerId, tgId, address));
+
       // the blessnet API does not yet support funding new accounts
       // so we do it manually for now, using a pK and a dedicated address
       // in a future version, the above call should do it for us.
-      if (message !== 'Account already exists') {
+      if (message === 'Account already exists') {
         const signer = new ethers.Wallet(
           process.env.FUNDER_PRIVATE_KEY!,
           config.provider
         );
+        console.log(ENV.ENTRYPOINT);
         const entryPoint = new ethers.Contract(
           ENV.ENTRYPOINT,
           EntryPointABI,
@@ -58,21 +64,20 @@ commands['setup'] = async (ctx: Context) => {
           })
         );
       }
-      // Save the user data to Supabase including the account
-      promises.push(addVillager(address));
-      promises.push(saveUserData(handlerId, tgId, address));
 
-      try {
-        await Promise.all(promises);
-        await ctx.reply(
-          `Your account has been set up successfully!\nHandler ID: ${handlerId}\nAccount: ${address}`
-        );
-      } catch (error) {
-        console.error('Failed to save user data:', error);
-        await ctx.reply(
-          'Your account was created, but there was an issue saving your user data.'
-        );
+      const results = await Promise.allSettled(promises);
+      let i = 0;
+      let errors = '';
+      for (const result of results) {
+        if (result.status === 'rejected') {
+          console.error('Failed to save user data:', result.reason);
+          errors += `Failed to save user data: ${result.reason}\n`;
+        }
+        i++;
       }
+      await ctx.reply(
+        `Your account has been set up successfully!\nHandler ID: ${handlerId}\nAccount: ${address}\n${errors}`
+      );
     } else {
       console.error(
         'Missing account or handler ID in response:',
@@ -108,11 +113,11 @@ commands['addTitle'] = async (ctx: Context) => {
     );
     return;
   }
-  const isManager = await hasRole(me.address!, ROLES.MANAGER);
-  if (!isManager) {
-    await ctx.reply('Only managers can add titles');
-    return;
-  }
+  // const isManager = await hasRole(me.address!, ROLES.MANAGER);
+  // if (!isManager) {
+  //   await ctx.reply('Only managers can add titles');
+  //   return;
+  // }
   try {
     await sendOp([
       {
@@ -203,6 +208,71 @@ commands['attest'] = async (ctx: Context) => {
     console.error('Error in attest command:', error);
     await ctx.reply(
       error.message || 'An error occurred while processing your request.'
+    );
+  }
+};
+
+commands['whoami'] = async (ctx: Context) => {
+  try {
+    const username = ctx.from?.username;
+    if (!username) {
+      await ctx.reply(
+        'Could not identify your Telegram username. Please ensure it is set.'
+      );
+      return;
+    }
+
+    const userData = await getUserByHandler(username);
+
+    if (!userData.success || !userData.address) {
+      await ctx.reply(
+        'Your account is not set up yet or your address is not found. Please use the /setup command first.'
+      );
+      return;
+    }
+
+    const blessedAccountAddress = userData.address as AddressLike;
+
+    const blessedAccountContract = new Contract(
+      userData.address,
+      blessedAccountABI,
+      config.provider
+    );
+
+    let balanceBigInt: bigint;
+    try {
+      balanceBigInt = await blessedAccountContract.getDeposit();
+    } catch (readError: any) {
+      console.error(
+        `Error reading getDeposit for ${blessedAccountAddress}:`,
+        readError
+      );
+      if (
+        readError.code === 'CALL_EXCEPTION' ||
+        readError.message?.includes('call revert exception')
+      ) {
+        await ctx.reply(
+          `Your registered address is: ${blessedAccountAddress}\n\nCould not fetch balance. This address might not be a smart contract account with a deposit function, or it may not be fully set up on the network yet.`
+        );
+      } else {
+        await ctx.reply(
+          `Your registered address is: ${blessedAccountAddress}\n\nAn error occurred while fetching your balance. Please try again later.`
+        );
+      }
+      return;
+    }
+
+    const balanceEth = ethers.formatEther(balanceBigInt);
+
+    await ctx.reply(
+      `Hello @${username}!
+Your blessed account address is: ${blessedAccountAddress}
+Your current deposit balance is: ${balanceEth} ETH`
+    );
+  } catch (error: any) {
+    console.error('Error in /whoami command:', error);
+    await ctx.reply(
+      'An unexpected error occurred while fetching your details. Please try again later.'
     );
   }
 };
