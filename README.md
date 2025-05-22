@@ -40,6 +40,7 @@ A Telegram bot for the Blessnet platform that handles user setup and attestation
 ### resolver
 
 - [] accept array of schemas to set all schemas at once
+- [] handle groups
 
 ## Supabase Setup
 
