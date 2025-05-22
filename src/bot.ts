@@ -17,21 +17,26 @@ axios.defaults.headers.common['X-API-KEY'] = process.env.BLESSNET_SCAN_API_KEY;
 
 const tryAndReply =
   (fn: (ctx: Context) => Promise<void>) => async (ctx: Context) => {
+    let resolvedInTime = false;
     await Promise.race([
-      fn(ctx),
+      (async () => {
+        await fn(ctx);
+        resolvedInTime = true;
+      })(),
       new Promise((_, reject) =>
         setTimeout(async () => {
-          await ctx.reply('An error occurred while processing your request.');
+          if (resolvedInTime) {
+            return;
+          }
+          await ctx.reply('Timeout processing your request.');
           reject(new Error('Timeout'));
         }, 10000)
       ),
     ]);
   };
 
-// let menu = new Menu('main');
 Object.entries(commands).forEach(
   ([command, handler]: [string, (ctx: Context) => Promise<void>]) => {
-    // menu = menu.text(command, tryAndReply(handler));
     console.log('subscribing to ', command);
     bot.command(
       command,
@@ -43,7 +48,6 @@ Object.entries(commands).forEach(
       },
       tryAndReply(handler)
     );
-    // bot.use(menu);
   }
 );
 
@@ -52,8 +56,8 @@ bot.command('whoamigroup', async (ctx) => {
 });
 
 // must be last
-bot.on('message', (ctx) => {
-  console.log('message', ctx);
-  ctx.reply('Please use the menu to setup your blessed account!', {});
+bot.on('message', async (ctx) => {
+  // console.log('message', ctx);
+  // ctx.reply('Please use the menu to setup your blessed account!', {});
 });
 export default bot;

@@ -144,26 +144,34 @@ commands['titles'] = async (ctx: Context) => {
   );
 };
 
+
 /**
  * Command handler for /attest
  * Accepts a mentioned user, gets their address, and sends an ATTEST_EVENT attestation
  */
 commands['attest'] = async (ctx: Context) => {
   try {
-    console.log('ctx', ctx.entities());
-    const title = 'hey';
-    const comment = 'something';
-    console.log(ctx.message?.text);
-    console.log(ctx.entities());
+    // considering a text such as: `/attest @username1 @username2 title some description i add`
+    // split it so that we get all mentions, the title and the comment
+    const text = ctx.message?.text || '';
     const mentions = ctx
       .entities()
       .filter((entity) => entity.type === 'mention');
+
+    const lastMention = mentions[mentions.length - 1];
+    const postMentionsText = text
+      .slice(lastMention.offset + lastMention.length)
+      .trim();
+    const [title, ...description] = postMentionsText.split(' ');
+    const comment = description.join(' ').trim() || 'NO_COMMENT';
+
     if (mentions.length === 0) {
       await ctx.reply(
         'Please mention a user to attest. Example: /attest @username'
       );
       return;
     }
+
     const me = await getUserByHandler(ctx.from?.username || '');
     if (!me.success) {
       await ctx.reply(
@@ -195,6 +203,8 @@ commands['attest'] = async (ctx: Context) => {
     return;
   } catch (error) {
     console.error('Error in attest command:', error);
-    await ctx.reply('An error occurred while processing your request.');
+    await ctx.reply(
+      error.message || 'An error occurred while processing your request.'
+    );
   }
 };
