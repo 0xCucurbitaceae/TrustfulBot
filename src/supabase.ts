@@ -1,6 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
-import { PLATFORM } from './commands';
 dotenv.config();
 
 // Initialize the Supabase client
@@ -18,8 +17,7 @@ export type UserData = {
   id?: number;
   handle: string;
   user_id: string;
-  account: string;
-  platform: string;
+  address: string;
   created_at?: string;
 };
 
@@ -28,14 +26,12 @@ export type UserData = {
  * @param handle The handler identifier
  * @param user_id The user's ID
  * @param address The user's account address
- * @param platform The platform (e.g., 'ZUITZERLAND')
  * @returns The result of the insertion
  */
 export const saveUserData = async (
   handle: string,
   tgId: string,
-  address: string,
-  platform: string = 'ZUITZERLAND'
+  address: string
 ): Promise<{ success: boolean; data?: UserData; error?: any }> => {
   try {
     const { data, error } = await supabase
@@ -59,12 +55,10 @@ export const saveUserData = async (
 /**
  * Get a user ID and account by handler ID
  * @param handle The handler identifier
- * @param platform The platform (e.g., 'ZUITZERLAND')
  * @returns The user ID and account if found
  */
 export const getUserByHandler = async (
-  handle: string,
-  platform: string = PLATFORM
+  handle: string
 ): Promise<{
   success: boolean;
   user_id?: string;

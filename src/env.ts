@@ -1,7 +1,12 @@
+/**
+ * This file is here to allow AI to read the available environment variables
+ */
+
 const ENV = {
   // BLESSNET
   BLESSNET_API_ACCOUNT: process.env.BLESSNET_API_ACCOUNT!,
   BLESSNET_API_KEY: process.env.BLESSNET_API_KEY!,
+  PLATFORM: process.env.PLATFORM!,
   // TELEGRAM
   BOT_TOKEN: process.env.BOT_TOKEN!,
   WEBHOOK_HOST: process.env.WEBHOOK_HOST!,
@@ -20,6 +25,6 @@ const ENV = {
   // CONTRACTS
   RESOLVER: process.env.RESOLVER!,
   EAS: process.env.EAS!,
-}
+};
 
 export default ENV;

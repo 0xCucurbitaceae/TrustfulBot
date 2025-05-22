@@ -8,8 +8,6 @@ import { hasRole } from './trusftul/utils';
 import { sendOp } from './send-op';
 import ENV from './env';
 
-export const PLATFORM = 'ZUITZERLAND';
-const chain = '11145513';
 
 export const commands: any = {};
 
@@ -25,7 +23,7 @@ commands['setup'] = async (ctx: Context) => {
 
     // Create the abstract account
     const response = await axios.put(
-      `/account-abstraction/platforms/${PLATFORM}/accounts?chain=sepolia`,
+      `/account-abstraction/platforms/${ENV.PLATFORM}/accounts?chain=sepolia`,
       { userIds: [tgId] }
     );
 
@@ -38,12 +36,7 @@ commands['setup'] = async (ctx: Context) => {
     // TODO: gate on group
     if (handlerId && address) {
       // Save the user data to Supabase including the account
-      const mappingResult = await saveUserData(
-        handlerId,
-        tgId,
-        address,
-        PLATFORM
-      );
+      const mappingResult = await saveUserData(handlerId, tgId, address);
       await addVillager(address);
 
       if (mappingResult.success) {
