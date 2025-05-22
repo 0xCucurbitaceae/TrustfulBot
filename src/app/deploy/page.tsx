@@ -6,12 +6,13 @@ import { ConnectButton } from '@rainbow-me/rainbowkit';
 import {
   AlertCircle,
   CheckCircle2,
+  ClipboardList,
   Copy,
   ExternalLink,
   Loader2,
   XCircle,
 } from 'lucide-react';
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Address, Hex, Log, parseEventLogs } from 'viem';
 import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
 import ENV from '../../lib/env';
@@ -50,8 +51,8 @@ const schemasToRegister = [
   },
 ];
 
-const DeploySchemaPage = () => {
-  const { address: accountAddress, isConnected } = useAccount();
+export default function DeploySchemaPage() {
+  const { address: connectedAddress } = useAccount();
   const { data: walletClient } = useWalletClient();
   const publicClient = usePublicClient();
 
@@ -68,7 +69,7 @@ const DeploySchemaPage = () => {
   }, []);
 
   const handleDeploy = async () => {
-    if (!isConnected || !walletClient || !publicClient || !accountAddress) {
+    if (!connectedAddress || !walletClient || !publicClient) {
       setDeploymentError('Please connect your wallet.');
       return;
     }
@@ -94,11 +95,11 @@ const DeploySchemaPage = () => {
       }
 
       // TODO: Confirm managerAddresses or make it configurable
-      const managerAddresses = [accountAddress];
+      const managerAddresses = [connectedAddress];
       console.log([
         EAS_CONTRACT_ADDRESS,
         SCHEMA_REGISTRY_ADDRESS,
-        accountAddress,
+        connectedAddress,
         managerAddresses,
       ]);
       const factoryDeployTxHash = await walletClient.writeContract({
@@ -108,10 +109,10 @@ const DeploySchemaPage = () => {
         args: [
           EAS_CONTRACT_ADDRESS,
           SCHEMA_REGISTRY_ADDRESS,
-          accountAddress,
+          connectedAddress,
           managerAddresses,
         ],
-        account: accountAddress,
+        account: connectedAddress,
       });
       console.log('factoryDeployTxHash', factoryDeployTxHash);
 
@@ -161,112 +162,146 @@ const DeploySchemaPage = () => {
     }
   };
 
-  if (!isConnected) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)]">
-        <Alert variant="destructive" className="w-full max-w-md">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Wallet Not Connected</AlertTitle>
-          <AlertDescription>
-            Please connect your wallet to deploy contracts and register schemas.
-          </AlertDescription>
-        </Alert>
-
-        <ConnectButton />
-      </div>
-    );
-  }
-
   return (
-    <div className="container mx-auto p-4 max-w-2xl">
-      <h1 className="text-3xl font-bold mb-6 text-center">
-        Deploy Contracts & Register Schemas
-      </h1>
+    <div className="container mx-auto p-4 max-w-3xl">
+      <h1 className="text-3xl font-bold mb-6 text-center">TrustfulBot Deployment</h1>
 
-      <div className="bg-card p-6 rounded-lg shadow-md">
-        <Button
-          onClick={handleDeploy}
-          disabled={isDeploying || !isConnected || !walletClient}
-          className="w-full mb-4"
-          size="lg"
-        >
-          {isDeploying ? (
-            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-          ) : (
-            <CheckCircle2 className="mr-2 h-5 w-5" />
-          )}
-          {isDeploying ? 'Processing Deployment...' : 'Start Full Deployment'}
-        </Button>
+      <div className="mb-8 p-4 bg-sky-50 border border-sky-200 rounded-lg shadow-sm">
+        <div className="flex items-center mb-3">
+          <ClipboardList className="h-6 w-6 mr-2 text-sky-600" />
+          <h2 className="text-xl font-semibold text-sky-700">Quick Setup Guide</h2>
+        </div>
+        <ol className="list-decimal list-inside space-y-1.5 text-sm text-gray-700 pl-2">
+          <li>
+            Create Telegram Bot via{' '}
+            <a
+              href="https://t.me/BotFather"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sky-600 hover:underline font-medium"
+            >
+              BotFather
+            </a>{' '}
+            (get BOT_TOKEN).
+          </li>
+          <li>Invite bot to your Telegram group.</li>
+          <li>
+            In group, use <code>/whoamigroup</code> with bot (get GROUP_ID).
+          </li>
+          <li>Choose a PLATFORM name (e.g., &quot;MyCommunity&quot;).</li>
+          <li>
+            Optional: Get{' '}
+            <a
+              href="https://blessnet.scan.com/myaccount/apikey" // Placeholder URL
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sky-600 hover:underline font-medium"
+            >
+              BlessNetScan
+            </a>{' '}
+            API Key & Account ID.
+          </li>
+        </ol>
+        <p className="mt-3 text-xs text-gray-600 pl-2">
+          These details will be needed for the <code>.env</code> configuration.
+        </p>
+      </div>
 
-        <Button
-          onClick={resetDeploymentState}
-          variant="outline"
-          className="w-full mb-6"
-          disabled={isDeploying}
-        >
-          Reset Deployment State
-        </Button>
-
-        {deploymentError && !isDeploying && (
-          <Alert variant="destructive" className="mb-4">
-            <XCircle className="h-4 w-4" />
-            <AlertTitle>Deployment Error</AlertTitle>
-            <AlertDescription>{deploymentError}</AlertDescription>
+      {!connectedAddress ? (
+        <div className="text-center p-6 bg-muted/50 rounded-md">
+          <Alert variant="destructive" className="w-full max-w-md">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Wallet Not Connected</AlertTitle>
+            <AlertDescription>
+              Please connect your wallet to deploy contracts and register schemas.
+            </AlertDescription>
           </Alert>
-        )}
-        {isDeploying && deploymentError && (
-          <Alert
-            variant="default"
-            className="mb-4 bg-blue-500/10 border-blue-500/50 text-blue-700 dark:text-blue-300"
+
+          <ConnectButton />
+        </div>
+      ) : (
+        <div className="bg-card p-6 rounded-lg shadow-md">
+          <Button
+            onClick={handleDeploy}
+            disabled={isDeploying || !connectedAddress || !walletClient}
+            className="w-full mb-4"
+            size="lg"
           >
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <AlertTitle>Deployment in Progress</AlertTitle>
-            <AlertDescription>{deploymentError}</AlertDescription>
-          </Alert>
-        )}
+            {isDeploying ? (
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+            ) : (
+              <CheckCircle2 className="mr-2 h-5 w-5" />
+            )}
+            {isDeploying ? 'Processing Deployment...' : 'Start Full Deployment'}
+          </Button>
 
-        {(resolverAddress || Object.keys(schemaUIDs).length > 0) &&
-          !isDeploying &&
-          !deploymentError && (
-            <Alert variant="success" className="mb-4">
-              <CheckCircle2 className="h-4 w-4" />
-              <AlertTitle>Deployment Successful!</AlertTitle>
-              <AlertDescription>
-                Contracts deployed and schemas registered successfully.
-              </AlertDescription>
+          <Button
+            onClick={resetDeploymentState}
+            variant="outline"
+            className="w-full mb-6"
+            disabled={isDeploying}
+          >
+            Reset Deployment State
+          </Button>
+
+          {deploymentError && !isDeploying && (
+            <Alert variant="destructive" className="mb-4">
+              <XCircle className="h-4 w-4" />
+              <AlertTitle>Deployment Error</AlertTitle>
+              <AlertDescription>{deploymentError}</AlertDescription>
+            </Alert>
+          )}
+          {isDeploying && deploymentError && (
+            <Alert
+              variant="default"
+              className="mb-4 bg-blue-500/10 border-blue-500/50 text-blue-700 dark:text-blue-300"
+            >
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <AlertTitle>Deployment in Progress</AlertTitle>
+              <AlertDescription>{deploymentError}</AlertDescription>
             </Alert>
           )}
 
-        {Object.keys(schemaUIDs).length > 0 && (
-          <div className="mb-4 p-3 bg-secondary rounded-md">
-            <h3 className="font-semibold text-sm mb-1">
-              Registered Schema UIDs:
-            </h3>
-            {schemasToRegister.map((schema) =>
-              schemaUIDs[schema.envVarName] ? (
-                <div key={schema.envVarName} className="text-xs mb-1">
-                  <span className="font-medium">
-                    {schema.name} ({schema.envVarName}):
-                  </span>
-                  <p className="text-muted-foreground break-all">
-                    {schemaUIDs[schema.envVarName]}
-                  </p>
-                </div>
-              ) : null
+          {(resolverAddress || Object.keys(schemaUIDs).length > 0) &&
+            !isDeploying &&
+            !deploymentError && (
+              <Alert variant="success" className="mb-4">
+                <CheckCircle2 className="h-4 w-4" />
+                <AlertTitle>Deployment Successful!</AlertTitle>
+                <AlertDescription>
+                  Contracts deployed and schemas registered successfully.
+                </AlertDescription>
+              </Alert>
             )}
-          </div>
-        )}
 
-        {/* {resolverAddress && Object.keys(schemaUIDs).length > 0 && ( */}
-        {
-          <DeployedVariablesOutput
-            resolverAddress={resolverAddress}
-            envVarsFromDeployment={schemaUIDs}
-          />
-        }
-      </div>
+          {Object.keys(schemaUIDs).length > 0 && (
+            <div className="mb-4 p-3 bg-secondary rounded-md">
+              <h3 className="font-semibold text-sm mb-1">
+                Registered Schema UIDs:
+              </h3>
+              {schemasToRegister.map((schema) =>
+                schemaUIDs[schema.envVarName] ? (
+                  <div key={schema.envVarName} className="text-xs mb-1">
+                    <span className="font-medium">
+                      {schema.name} ({schema.envVarName}):
+                    </span>
+                    <p className="text-muted-foreground break-all">
+                      {schemaUIDs[schema.envVarName]}
+                    </p>
+                  </div>
+                ) : null
+              )}
+            </div>
+          )}
+
+          {resolverAddress && Object.keys(schemaUIDs).length > 0 && (
+            <DeployedVariablesOutput
+              resolverAddress={resolverAddress}
+              envVarsFromDeployment={schemaUIDs}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
-};
-
-export default DeploySchemaPage;
+}
