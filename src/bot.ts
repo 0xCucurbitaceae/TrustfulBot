@@ -1,13 +1,7 @@
 import { Bot, Context } from 'grammy';
-import { Menu } from '@grammyjs/menu';
-
-import dotenv from 'dotenv';
 import axios from 'axios';
 import { commands } from './commands';
 import ENV from './env';
-
-// Load environment variables
-dotenv.config();
 
 if (!process.env.BOT_TOKEN) {
   throw new Error('BOT_TOKEN must be set in environment variables');
