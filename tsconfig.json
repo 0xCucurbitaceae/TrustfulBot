@@ -28,7 +28,7 @@
   "include": [
     "../api/webhook.ts",
     "src/**/*",
-    "src/env.ts",
+    "src/lib/env.ts",
     ".next/types/**/*.ts"
   ],
   "exclude": [

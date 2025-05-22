@@ -1,5 +1,5 @@
 import { ethers } from 'ethers';
-import ENV from '../env';
+import ENV from '../lib/env';
 
 
 export enum ROLES {

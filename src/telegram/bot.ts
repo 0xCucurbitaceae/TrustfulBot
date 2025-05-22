@@ -1,7 +1,7 @@
 import { Bot, Context } from 'grammy';
 import axios from 'axios';
 import { commands } from './commands';
-import ENV from './env';
+import ENV from '../lib/env';
 
 if (!process.env.BOT_TOKEN) {
   throw new Error('BOT_TOKEN must be set in environment variables');

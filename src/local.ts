@@ -1,7 +1,7 @@
 import express from 'express';
 import { webhookCallback } from 'grammy';
 import dotenv from 'dotenv';
-import bot from './bot';
+import bot from './telegram/bot';
 
 // Load environment variables
 dotenv.config();

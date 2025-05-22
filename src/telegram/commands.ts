@@ -1,14 +1,14 @@
-import { TrustfulResolverABI } from './lib/TrustfulResolverABI';
+import { TrustfulResolverABI } from '../abis/TrustfulResolverABI';
 import { Context } from 'grammy';
 import axios from 'axios';
-import { getUserByHandler, saveUserData } from './supabase';
-import { addVillager, attest, getTitles } from './trusftul/actions';
-import { config, ROLES } from './trusftul/constants';
-import { hasRole } from './trusftul/utils';
-import { sendOp } from './send-op';
-import ENV from './env';
+import { getUserByHandler, saveUserData } from '../lib/supabase';
+import { addVillager, attest, getTitles } from '../trusftul/actions';
+import { config, ROLES } from '../trusftul/constants';
+import { hasRole } from '../trusftul/utils';
+import { sendOp } from '../lib/send-op';
+import ENV from '../lib/env';
 import { ethers } from 'ethers';
-import { EntryPointABI } from './lib/EntryPoint';
+import { EntryPointABI } from '../abis/EntryPoint';
 
 export const commands: any = {};
 
@@ -142,7 +142,6 @@ commands['titles'] = async (ctx: Context) => {
     `Available titles are:\n${titles.map((title) => `• ${title}`).join('\n')}`
   );
 };
-
 
 /**
  * Command handler for /attest

@@ -1,7 +1,7 @@
 import { ethers, ZeroHash } from 'ethers';
-import { EASABI } from '../lib/EASABI';
-import { TrustfulResolverABI } from '../lib/TrustfulResolverABI';
-import { sendOp } from '../send-op';
+import { EASABI } from '../abis/EASABI';
+import { TrustfulResolverABI } from '../abis/TrustfulResolverABI';
+import { sendOp } from '../lib/send-op';
 import { config, type ROLES } from './constants';
 
 export const getResolverContract = () =>
