@@ -203,6 +203,8 @@ commands['attest'] = async (ctx: Context) => {
     return;
   } catch (error) {
     console.error('Error in attest command:', error);
-    await ctx.reply('An error occurred while processing your request.');
+    await ctx.reply(
+      error.message || 'An error occurred while processing your request.'
+    );
   }
 };

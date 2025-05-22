@@ -62,7 +62,7 @@ bot.command('whoamigroup', async (ctx) => {
 
 // must be last
 bot.on('message', async (ctx) => {
-  console.log('message', ctx);
-  ctx.reply('Please use the menu to setup your blessed account!', {});
+  // console.log('message', ctx);
+  // ctx.reply('Please use the menu to setup your blessed account!', {});
 });
 export default bot;

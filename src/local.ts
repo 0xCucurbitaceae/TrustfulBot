@@ -15,7 +15,10 @@ app.use(express.json());
 // Local development server¥ƒ
 const PORT = process.env.PORT || 3000;
 app.use(express.json());
-app.use('/api/bot', webhookCallback(bot, 'express'));
+app.use(
+  '/api/bot',
+  webhookCallback(bot, 'express', { timeoutMilliseconds: 30_000 })
+);
 
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
