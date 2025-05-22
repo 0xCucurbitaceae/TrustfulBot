@@ -11,6 +11,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 import { usePublicClient } from 'wagmi';
+import Link from 'next/link';
 
 type Attestation = {
   recipient: string;
@@ -29,7 +30,11 @@ const columns = [
     header: () => <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">UID</span>,
     cell: (info) => {
       const uid = info.getValue();
-      return <span className="text-sm text-gray-700 font-mono">{`${uid.substring(0, 8)}...${uid.substring(uid.length - 6)}`}</span>;
+      return (
+        <Link href={`/attestations/${uid}`} className="text-sm text-blue-600 hover:text-blue-800 hover:underline font-mono cursor-pointer">
+          {`${uid.substring(0, 8)}...${uid.substring(uid.length - 6)}`}
+        </Link>
+      );
     }
   }),
   columnHelper.accessor('schemaUID', {
@@ -45,7 +50,7 @@ const columns = [
     cell: (info) => {
         const attester = info.getValue();
         // TODO: Link to explorer for address
-        return <span className="text-sm text-blue-600 hover:text-blue-800 hover:underline cursor-pointer">{`${attester.substring(0, 6)}...${attester.substring(attester.length - 4)}`}</span>;
+        return <span className="text-sm text-blue-600 hover:text-blue-800 hover:underline cursor-pointer font-mono">{`${attester.substring(0, 6)}...${attester.substring(attester.length - 4)}`}</span>;
     }
   }),
   columnHelper.accessor('recipient', {
@@ -53,7 +58,7 @@ const columns = [
     cell: (info) => {
         const recipient = info.getValue();
         // TODO: Link to explorer for address
-        return <span className="text-sm text-blue-600 hover:text-blue-800 hover:underline cursor-pointer">{`${recipient.substring(0, 6)}...${recipient.substring(recipient.length - 4)}`}</span>;
+        return <span className="text-sm text-blue-600 hover:text-blue-800 hover:underline cursor-pointer font-mono">{`${recipient.substring(0, 6)}...${recipient.substring(recipient.length - 4)}`}</span>;
     }
   }),
   columnHelper.display({
