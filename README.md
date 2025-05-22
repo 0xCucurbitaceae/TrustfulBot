@@ -18,11 +18,12 @@ A Telegram bot for the Blessnet platform that handles user setup and attestation
 
 ## TODO:
 
-- [] gate on groupID
-- [] prevent non-managers to addTitles
+- [x] gate on groupID
+- [x] prevent non-managers to addTitles
+- [] allow managers to disable titles
 - [] vote on new titles?
 - [] react on an attestation to confirm it
-- []
+- [] support disabling titles
 
 ## Supabase Setup
 

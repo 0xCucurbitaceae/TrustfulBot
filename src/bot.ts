@@ -1,5 +1,4 @@
-import { Bot, Context } from 'grammy';
-import { Menu } from '@grammyjs/menu';
+import { Bot, Context, session } from 'grammy';
 
 import dotenv from 'dotenv';
 import axios from 'axios';
@@ -41,10 +40,8 @@ const tryAndReply =
     ]);
   };
 
-// let menu = new Menu('main');
 Object.entries(commands).forEach(
   ([command, handler]: [string, (ctx: Context) => Promise<void>]) => {
-    // menu = menu.text(command, tryAndReply(handler));
     console.log('subscribing to ', command);
     bot.command(
       command,
@@ -56,7 +53,6 @@ Object.entries(commands).forEach(
       },
       tryAndReply(handler)
     );
-    // bot.use(menu);
   }
 );
 
@@ -65,7 +61,7 @@ bot.command('whoamigroup', async (ctx) => {
 });
 
 // must be last
-bot.on('message', (ctx) => {
+bot.on('message', async (ctx) => {
   console.log('message', ctx);
   ctx.reply('Please use the menu to setup your blessed account!', {});
 });
