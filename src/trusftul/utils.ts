@@ -1,11 +1,11 @@
-import type { ethers } from 'ethers/lib.commonjs/ethers';
+import { ethers, ZeroHash } from 'ethers';
 import { EASABI } from '../lib/EASABI';
 import { TrustfulResolverABI } from '../lib/TrustfulResolverABI';
 import { sendOp } from '../send-op';
 import { config, type ROLES } from './constants';
 
-
-export const getResolverContract = () => new ethers.Contract(config.resolver, TrustfulResolverABI, config.provider);
+export const getResolverContract = () =>
+  new ethers.Contract(config.resolver, TrustfulResolverABI, config.provider);
 interface AttestationRequest {
   schema: string;
   data: AttestationRequestData;
@@ -28,7 +28,10 @@ export const hasRole = async (address: string, role: ROLES) => {
  */
 
 export const giveAttestation = async ({
-  recipient, attester, attestationType, args,
+  recipient,
+  attester,
+  attestationType,
+  args,
 }: {
   recipient: string;
   attester: string;
@@ -39,7 +42,7 @@ export const giveAttestation = async ({
   const data = ethers.AbiCoder.defaultAbiCoder().encode(schema, args);
   const attestData: AttestationRequestData = {
     expirationTime: 0,
-    refUID: '0x0000000000000000000000000000000000000000000000000000000000000000',
+    refUID: ZeroHash,
     recipient,
     revocable: false,
     data,

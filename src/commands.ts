@@ -3,11 +3,12 @@ import { Context } from 'grammy';
 import axios from 'axios';
 import { getUserByHandler, saveUserData } from './supabase';
 import { addVillager, attest, getTitles } from './trusftul/actions';
-import { ROLES } from './trusftul/constants';
+import { config, ROLES } from './trusftul/constants';
 import { hasRole } from './trusftul/utils';
 import { sendOp } from './send-op';
 import ENV from './env';
-
+import { ethers } from 'ethers';
+import { EntryPointABI } from './lib/EntryPoint';
 
 export const commands: any = {};
 
@@ -24,28 +25,51 @@ commands['setup'] = async (ctx: Context) => {
     // Create the abstract account
     const response = await axios.put(
       `/account-abstraction/platforms/${ENV.PLATFORM}/accounts?chain=sepolia`,
-      { userIds: [tgId] }
+      {
+        userIds: [tgId],
+        // TODO: fund on creation
+        // funding: { amount: ethers.parseEther('0.001') }
+      }
     );
 
-    // Extract the account and handler ID from the response
-    // Adjust this based on the actual response structure
-    const address = response.data?.accounts[0].account;
+    const { account: address, message } = response.data?.accounts[0];
     const handlerId = ctx.from?.username;
 
     console.log('Account setup response:', handlerId);
+    const promises: any[] = [];
     // TODO: gate on group
     if (handlerId && address) {
+      // the blessnet API does not yet support funding new accounts
+      // so we do it manually for now, using a pK and a dedicated address
+      // in a future version, the above call should do it for us.
+      if (message !== 'Account already exists') {
+        console.log('funding');
+        const signer = new ethers.Wallet(
+          process.env.FUNDER_PRIVATE_KEY!,
+          config.provider
+        );
+        const entryPoint = new ethers.Contract(
+          ENV.ENTRYPOINT,
+          EntryPointABI,
+          signer
+        );
+        promises.push(
+          entryPoint.depositTo(address, {
+            value: ethers.parseEther('0.006'),
+          })
+        );
+      }
       // Save the user data to Supabase including the account
-      const mappingResult = await saveUserData(handlerId, tgId, address);
-      await addVillager(address);
+      promises.push(addVillager(address));
+      promises.push(saveUserData(handlerId, tgId, address));
 
-      if (mappingResult.success) {
-        console.log('User data saved successfully:', mappingResult.data);
+      try {
+        await Promise.all(promises);
         await ctx.reply(
           `Your account has been set up successfully!\nHandler ID: ${handlerId}\nAccount: ${address}`
         );
-      } else {
-        console.error('Failed to save user data:', mappingResult.error);
+      } catch (error) {
+        console.error('Failed to save user data:', error);
         await ctx.reply(
           'Your account was created, but there was an issue saving your user data.'
         );

@@ -10,6 +10,11 @@ A Telegram bot for the Blessnet platform that handles user setup and attestation
 4. Get a bless.net API account
 5. Make your blessnet account a manager on the resolver
 6. Fund your blessnet account with enough to fund each potential accounts
+7. Create a tg group
+8. run `/whoamigroup` to get the group ID
+9. set `GROUP_ID` in the env
+10. deploy your app
+11. Set the webhook with `pnpm set-webhook`
 
 ## TODO:
 

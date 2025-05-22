@@ -4,6 +4,7 @@ import { Menu } from '@grammyjs/menu';
 import dotenv from 'dotenv';
 import axios from 'axios';
 import { commands } from './commands';
+import ENV from './env';
 
 // Load environment variables
 dotenv.config();
@@ -38,10 +39,23 @@ Object.entries(commands).forEach(
   ([command, handler]: [string, (ctx: Context) => Promise<void>]) => {
     // menu = menu.text(command, tryAndReply(handler));
     console.log('subscribing to ', command);
-    bot.command(command, tryAndReply(handler));
+    bot.command(
+      command,
+      async (ctx, next) => {
+        if (ctx.chat.id !== ENV.GROUP_ID) {
+          return ctx.reply('You are not in the group');
+        }
+        await next();
+      },
+      tryAndReply(handler)
+    );
     // bot.use(menu);
   }
 );
+
+bot.command('whoamigroup', async (ctx) => {
+  await ctx.reply(`You are in group ${ctx.chat.id}`);
+});
 
 // must be last
 bot.on('message', (ctx) => {
