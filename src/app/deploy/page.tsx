@@ -118,6 +118,10 @@ const DeploySchemaPage = () => {
       'https://github.com/0xCucurbitaceae/TrustfulBot#environment-variables'
     );
 
+    params.append('integration-ids', 'oac_jUduyjQgOyzev1fjrW83NYOv');
+    params.append('skippable-integrations', '1');
+
+    // add supabase integrat
     const vercelDeployUrl = `https://vercel.com/new/clone?${params.toString()}`;
     window.open(vercelDeployUrl, '_blank');
   };
