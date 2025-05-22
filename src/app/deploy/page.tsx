@@ -11,11 +11,12 @@ import {
   Loader2,
   XCircle,
 } from 'lucide-react';
-import { useCallback, useMemo, useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Address, Hex, Log, parseEventLogs } from 'viem';
 import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
 import ENV from '../../lib/env';
 import { ResolverFactoryABI } from './ResolverFactoryABI';
+import { DeployedVariablesOutput } from './DeployedVariablesOutput';
 
 const SCHEMA_REGISTRY_ADDRESS = ENV.SCHEMA_REGISTRY_ADDRESS as Address;
 const EAS_CONTRACT_ADDRESS = ENV.EAS as Address;
@@ -58,73 +59,13 @@ const DeploySchemaPage = () => {
   const [deploymentError, setDeploymentError] = useState<string | null>(null);
   const [resolverAddress, setResolverAddress] = useState<Address | null>(null);
   const [schemaUIDs, setSchemaUIDs] = useState<Record<string, Hex>>({});
-  const [copied, setCopied] = useState(false);
 
   const resetDeploymentState = useCallback(() => {
     setIsDeploying(false);
     setDeploymentError(null);
     setResolverAddress(null);
     setSchemaUIDs({});
-    setCopied(false);
   }, []);
-
-  const envOutput = useMemo(() => {
-    let output = 'fill the following variables here with your own values:\n\n';
-    output +=
-      'BOT_TOKEN=\nWEBHOOK_HOST=\nPLATFORM=\nGROUP_ID=\nBLESSNET_SCAN_API_KEY=\nBLESSNET_API_ACCOUNT=\n\n';
-    const filteredSchemaUIDs = { ...schemaUIDs };
-    // NEXT_PUBLIC_RESOLVER_ADDRESS is already excluded from schemaUIDs when it's set after deployment
-
-    output += Object.entries(filteredSchemaUIDs)
-      .map(([key, value]) => `${key}=${value}`)
-      .join('\n');
-    return output;
-  }, [schemaUIDs]);
-
-  const handleDeployToVercel = () => {
-    // Condition for enabling button already covers this, but good for direct calls
-    if (Object.keys(schemaUIDs).length === 0 && !resolverAddress) return;
-
-    const repoUrl = 'https://github.com/0xCucurbitaceae/TrustfulBot';
-    const params = new URLSearchParams();
-    params.append('repository-url', repoUrl);
-
-    const envVarsToSetInVercel = { ...schemaUIDs };
-    // NEXT_PUBLIC_RESOLVER_ADDRESS is already excluded from schemaUIDs
-
-    const envKeysForVercelPrompt = [
-      'BOT_TOKEN',
-      'WEBHOOK_HOST',
-      'PLATFORM',
-      'GROUP_ID',
-      'BLESSNET_SCAN_API_KEY',
-      'BLESSNET_API_ACCOUNT',
-      ...Object.keys(envVarsToSetInVercel), // These will be pre-filled
-    ];
-    params.append('env', envKeysForVercelPrompt.join(','));
-
-    // Pre-fill values for contract-related vars
-    for (const [key, value] of Object.entries(envVarsToSetInVercel)) {
-      params.append(key, value);
-    }
-    // BOT_TOKEN, WEBHOOK_HOST, etc., will be prompted by Vercel as they are in 'env' but not pre-filled here
-
-    params.append(
-      'envDescription',
-      'Environment variables for your TrustfulBot instance deployed via Attest-Bot.'
-    );
-    params.append(
-      'envLink',
-      'https://github.com/0xCucurbitaceae/TrustfulBot#environment-variables'
-    );
-
-    params.append('integration-ids', 'oac_jUduyjQgOyzev1fjrW83NYOv');
-    params.append('skippable-integrations', '1');
-
-    // add supabase integrat
-    const vercelDeployUrl = `https://vercel.com/new/clone?${params.toString()}`;
-    window.open(vercelDeployUrl, '_blank');
-  };
 
   const handleDeploy = async () => {
     if (!isConnected || !walletClient || !publicClient || !accountAddress) {
@@ -136,7 +77,6 @@ const DeploySchemaPage = () => {
     setDeploymentError(null);
     setResolverAddress(null);
     setSchemaUIDs({});
-    setCopied(false);
 
     let deployedResolverAddress: Address | null = null;
     const deployedSchemaUIDs: Record<string, Hex> = {};
@@ -219,12 +159,6 @@ const DeploySchemaPage = () => {
     } finally {
       setIsDeploying(false);
     }
-  };
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(envOutput.replace(/\\n/g, '\n'));
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   };
 
   if (!isConnected) {
@@ -323,49 +257,13 @@ const DeploySchemaPage = () => {
           </div>
         )}
 
-        {resolverAddress && Object.keys(schemaUIDs).length > 0 && (
-          <div
-            className="mb-4 p-4 bg-muted/50 rounded-md"
-            data-component-name="DeploySchemaPage"
-          >
-            <div className="flex justify-between items-start mb-2">
-              <h3 className="font-semibold text-lg">
-                Deployed Variables (.env format)
-              </h3>
-              <div className="flex space-x-2">
-                <Button
-                  onClick={() => {
-                    navigator.clipboard.writeText(envOutput);
-                    setCopied(true);
-                    setTimeout(() => setCopied(false), 2000);
-                  }}
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-1.5"
-                  disabled={!envOutput}
-                >
-                  <Copy size={14} />
-                  {copied ? 'Copied!' : 'Copy .env'}
-                </Button>
-                <Button
-                  onClick={handleDeployToVercel}
-                  variant="default"
-                  size="sm"
-                  className="flex items-center gap-1.5"
-                  disabled={
-                    Object.keys(schemaUIDs).length === 0 && !resolverAddress
-                  }
-                >
-                  <ExternalLink size={14} />
-                  Deploy to Vercel
-                </Button>
-              </div>
-            </div>
-            <pre className="text-xs bg-background p-2 rounded overflow-x-auto">
-              <code>{envOutput}</code>
-            </pre>
-          </div>
-        )}
+        {/* {resolverAddress && Object.keys(schemaUIDs).length > 0 && ( */}
+        {
+          <DeployedVariablesOutput
+            resolverAddress={resolverAddress}
+            envVarsFromDeployment={schemaUIDs}
+          />
+        }
       </div>
     </div>
   );
