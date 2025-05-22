@@ -43,7 +43,6 @@ commands['setup'] = async (ctx: Context) => {
       // so we do it manually for now, using a pK and a dedicated address
       // in a future version, the above call should do it for us.
       if (message !== 'Account already exists') {
-        console.log('funding');
         const signer = new ethers.Wallet(
           process.env.FUNDER_PRIVATE_KEY!,
           config.provider

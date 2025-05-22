@@ -16,8 +16,8 @@ const ENV = {
   NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   SUPABASE_SERVICE_ROLE: process.env.SUPABASE_SERVICE_ROLE!,
   // RPC
-  RPC_URL: process.env.RPC_URL!,
-  CHAIN_ID: Number(process.env.CHAIN_ID!),
+  RPC_URL: process.env.RPC_URL! || 'https://blessnet.calderachain.xyz/http',
+  CHAIN_ID: Number(process.env.CHAIN_ID! || 45513),
   // TRUSTFUL
   MANAGER_UID:
     process.env.MANAGER_UID! ||
