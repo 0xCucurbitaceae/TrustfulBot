@@ -22,8 +22,7 @@ export function DeployedVariablesOutput({
 
   const initialEnvOutput = useMemo(() => {
     let output = '';
-    output +=
-      'BOT_TOKEN=\nWEBHOOK_HOST=\nPLATFORM=\nGROUP_ID=\nBLESSNET_SCAN_API_KEY=\nBLESSNET_API_ACCOUNT=\n\n';
+    output += `BOT_TOKEN=\nWEBHOOK_HOST=\nPLATFORM=\nGROUP_ID=\nBLESSNET_SCAN_API_KEY=\nBLESSNET_API_ACCOUNT=\n\nNEXT_PUBLIC_RESOLVER=${resolverAddress}\n`;
 
     const filteredVars = { ...envVarsFromDeployment };
     delete (filteredVars as any).NEXT_PUBLIC_RESOLVER_ADDRESS;

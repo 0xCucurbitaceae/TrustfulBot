@@ -42,6 +42,10 @@ A Telegram bot for the Blessnet platform that handles user setup and attestation
 - [] accept array of schemas to set all schemas at once
 - [] handle groups
 
+### deploy
+
+- [] migrate supabase on deploy
+
 ## Supabase Setup
 
 This project uses Supabase for storing handler-userId mappings. Follow these steps to set up your Supabase database:

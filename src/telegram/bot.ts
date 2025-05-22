@@ -12,7 +12,7 @@ const bot = new Bot(process.env.BOT_TOKEN!, {
   },
 });
 
-axios.defaults.baseURL = `https://api.test.bless.net`;
+axios.defaults.baseURL = ENV.BLESSNET_API_URL;
 axios.defaults.headers.common['X-API-KEY'] = process.env.BLESSNET_SCAN_API_KEY;
 
 const tryAndReply =

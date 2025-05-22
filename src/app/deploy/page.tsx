@@ -13,6 +13,7 @@ import {
   Loader2,
   XCircle,
 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import { useState, useEffect, useCallback } from 'react';
 import { Address, Hex, Log, parseEventLogs } from 'viem';
 import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
@@ -61,18 +62,39 @@ export default function DeploySchemaPage() {
   const [deploymentError, setDeploymentError] = useState<string | null>(null);
   const [resolverAddress, setResolverAddress] = useState<Address | null>(null);
   const [schemaUIDs, setSchemaUIDs] = useState<Record<string, Hex>>({});
+  const [managerAddressInput, setManagerAddressInput] = useState<string>('');
 
   const resetDeploymentState = useCallback(() => {
     setIsDeploying(false);
     setDeploymentError(null);
     setResolverAddress(null);
     setSchemaUIDs({});
+    setManagerAddressInput('');
   }, []);
 
   const handleDeploy = async () => {
     if (!connectedAddress || !walletClient || !publicClient) {
       setDeploymentError('Please connect your wallet.');
       return;
+    }
+
+    const isValidEthereumAddress = (address: string): address is Address => {
+      return /^0x[a-fA-F0-9]{40}$/.test(address);
+    };
+
+    let finalManagerAddresses: Address[];
+    if (managerAddressInput.trim() !== '') {
+      if (!isValidEthereumAddress(managerAddressInput.trim())) {
+        setDeploymentError('Invalid Manager Address format.');
+        return;
+      }
+      finalManagerAddresses = [managerAddressInput.trim() as Address];
+    } else {
+      if (!connectedAddress) { 
+        setDeploymentError('Wallet not connected to determine default manager.');
+        return;
+      }
+      finalManagerAddresses = [connectedAddress]; 
     }
 
     setIsDeploying(true);
@@ -84,7 +106,6 @@ export default function DeploySchemaPage() {
     const deployedSchemaUIDs: Record<string, Hex> = {};
 
     try {
-      // 1. Deploy Resolver Contract via Factory
       setDeploymentError('Deploying Resolver contract via Factory...');
       if (
         !FACTORY_CONTRACT_ADDRESS ||
@@ -95,13 +116,11 @@ export default function DeploySchemaPage() {
         );
       }
 
-      // TODO: Confirm managerAddresses or make it configurable
-      const managerAddresses = [connectedAddress];
       console.log([
         EAS_CONTRACT_ADDRESS,
         SCHEMA_REGISTRY_ADDRESS,
         connectedAddress,
-        managerAddresses,
+        finalManagerAddresses, 
       ]);
       const factoryDeployTxHash = await walletClient.writeContract({
         address: FACTORY_CONTRACT_ADDRESS,
@@ -110,8 +129,8 @@ export default function DeploySchemaPage() {
         args: [
           EAS_CONTRACT_ADDRESS,
           SCHEMA_REGISTRY_ADDRESS,
-          connectedAddress,
-          managerAddresses,
+          connectedAddress, 
+          finalManagerAddresses, 
         ],
         account: connectedAddress,
       });
@@ -129,8 +148,6 @@ export default function DeploySchemaPage() {
         );
       }
 
-      // Parse event to get the new resolver address
-      // and the schema UIDs
       const event = parseEventLogs({
         abi: ResolverFactoryABI,
         logs: factoryDeployReceipt.logs as Log[],
@@ -139,7 +156,7 @@ export default function DeploySchemaPage() {
 
       deployedResolverAddress = event.args.resolver;
       setResolverAddress(deployedResolverAddress);
-      setDeploymentError(null); // Clear 'Deploying...' message
+      setDeploymentError(null); 
 
       setSchemaUIDs({
         MANAGER_UID: event.args.schemaUIDs[0],
@@ -155,9 +172,7 @@ export default function DeploySchemaPage() {
       setDeploymentError(
         error.message || 'An unknown error occurred during deployment.'
       );
-      // Rollback partial state if necessary, or indicate partial success
       if (!deployedResolverAddress) setResolverAddress(null);
-      // Keep successfully registered UIDs for display if some succeeded before failure
     } finally {
       setIsDeploying(false);
     }
@@ -197,18 +212,43 @@ export default function DeploySchemaPage() {
           <li>
             Get{' '}
             <a
-              href="https://bless.net" // Placeholder URL
+              href="https://bless.net" 
               target="_blank"
               rel="noopener noreferrer"
               className="text-sky-600 hover:underline font-medium"
             >
-              BlessNetScan
+              Bless Profile ID
             </a>{' '}
-            API Key & Account ID.
+            (get BLESS_PROFILE_ID). This is your main identity.
+          </li>
+          <li>
+            (Optional) Provide a specific Manager address below. If left empty,
+            your connected wallet address will be used as the manager.
           </li>
         </ol>
         <p className="mt-3 text-xs text-gray-600 pl-2">
           These details will be needed for the <code>.env</code> configuration.
+        </p>
+      </div>
+
+      <div className="mb-6">
+        <label
+          htmlFor="managerAddress"
+          className="block text-sm font-medium text-gray-700 mb-1"
+        >
+          Manager Address (Optional)
+        </label>
+        <Input
+          id="managerAddress"
+          type="text"
+          placeholder="0x... (Defaults to your connected address if empty)"
+          value={managerAddressInput}
+          onChange={(e) => setManagerAddressInput(e.target.value)}
+          className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500"
+        />
+        <p className="mt-1 text-xs text-gray-500">
+          This address will have administrative rights over the deployed
+          resolver.
         </p>
       </div>
 

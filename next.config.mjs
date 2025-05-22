@@ -2,10 +2,7 @@
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    turbo: {},
-    serverComponentsExternalPackages: [`require-in-the-middle`],
-  },
+  experimental: {},
   webpack: (config) => {
     config.externals.push('pino-pretty', 'lokijs', 'encoding');
 
