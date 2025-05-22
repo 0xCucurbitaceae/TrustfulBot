@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   ClipboardList,
   Copy,
+  Database,
   ExternalLink,
   Loader2,
   XCircle,
@@ -164,12 +165,16 @@ export default function DeploySchemaPage() {
 
   return (
     <div className="container mx-auto p-4 max-w-3xl">
-      <h1 className="text-3xl font-bold mb-6 text-center">TrustfulBot Deployment</h1>
+      <h1 className="text-3xl font-bold mb-6 text-center">
+        TrustfulBot Deployment
+      </h1>
 
       <div className="mb-8 p-4 bg-sky-50 border border-sky-200 rounded-lg shadow-sm">
         <div className="flex items-center mb-3">
           <ClipboardList className="h-6 w-6 mr-2 text-sky-600" />
-          <h2 className="text-xl font-semibold text-sky-700">Quick Setup Guide</h2>
+          <h2 className="text-xl font-semibold text-sky-700">
+            Quick Setup Guide
+          </h2>
         </div>
         <ol className="list-decimal list-inside space-y-1.5 text-sm text-gray-700 pl-2">
           <li>
@@ -190,9 +195,9 @@ export default function DeploySchemaPage() {
           </li>
           <li>Choose a PLATFORM name (e.g., &quot;MyCommunity&quot;).</li>
           <li>
-            Optional: Get{' '}
+            Get{' '}
             <a
-              href="https://blessnet.scan.com/myaccount/apikey" // Placeholder URL
+              href="https://bless.net" // Placeholder URL
               target="_blank"
               rel="noopener noreferrer"
               className="text-sky-600 hover:underline font-medium"
@@ -213,7 +218,8 @@ export default function DeploySchemaPage() {
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Wallet Not Connected</AlertTitle>
             <AlertDescription>
-              Please connect your wallet to deploy contracts and register schemas.
+              Please connect your wallet to deploy contracts and register
+              schemas.
             </AlertDescription>
           </Alert>
 
@@ -295,10 +301,45 @@ export default function DeploySchemaPage() {
           )}
 
           {resolverAddress && Object.keys(schemaUIDs).length > 0 && (
-            <DeployedVariablesOutput
-              resolverAddress={resolverAddress}
-              envVarsFromDeployment={schemaUIDs}
-            />
+            <>
+              <DeployedVariablesOutput
+                resolverAddress={resolverAddress}
+                envVarsFromDeployment={schemaUIDs}
+              />
+              <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg shadow-sm">
+                <div className="flex items-center mb-3">
+                  <Database className="h-6 w-6 mr-2 text-green-600" />
+                  <h2 className="text-xl font-semibold text-green-700">
+                    Important: Database Setup
+                  </h2>
+                </div>
+                <p className="text-sm text-gray-700 mb-2 pl-1">
+                  After deploying your TrustfulBot to Vercel and ensuring
+                  it&apos;s running with the correct environment variables, you
+                  need to set up its database schema in Supabase. This allows
+                  the bot to store user data.
+                </p>
+                <p className="text-sm text-gray-700 pl-1">
+                  Go to your Supabase project&apos;s SQL Editor and run the
+                  migration script found here:
+                </p>
+                <div className="mt-2 pl-1">
+                  <a
+                    href="https://github.com/0xCucurbitaceae/TrustfulBot/blob/58545c1206bc571e2633c3a527594b9b09c27cc8/scripts/supabase-migration.sql"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                  >
+                    View Supabase Migration SQL on GitHub
+                    <ExternalLink size={14} className="ml-1.5" />
+                  </a>
+                </div>
+                <p className="mt-3 text-xs text-gray-600 pl-1">
+                  This script will create the necessary <code>users</code> table
+                  for your bot to function correctly.
+                </p>
+              </div>
+            </>
           )}
         </div>
       )}
