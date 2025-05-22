@@ -8,7 +8,7 @@ import { chains } from "@blessnet/config";
 const config = getDefaultConfig({
   appName: 'Attest bot',
   projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID!,
-  chains: [chains.blessnet, chains.blessnetSepolia],
+  chains: [chains.blessnetSepolia],
   ssr: true, // If your dApp uses server side rendering (SSR)
 });
 
