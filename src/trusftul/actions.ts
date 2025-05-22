@@ -1,6 +1,6 @@
 import dotenv from 'dotenv';
-import { getResolverContract, giveAttestation } from './trusftul/utils';
-import { ROLES } from './trusftul/constants';
+import { getResolverContract, giveAttestation } from './utils';
+import { ROLES } from './constants';
 
 dotenv.config();
 

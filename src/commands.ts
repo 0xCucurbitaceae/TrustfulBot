@@ -2,7 +2,7 @@ import { TrustfulResolverABI } from './lib/TrustfulResolverABI';
 import { Context } from 'grammy';
 import axios from 'axios';
 import { getUserByHandler, saveUserData } from './supabase';
-import { addVillager, attest, getTitles } from './trustful';
+import { addVillager, attest, getTitles } from './trusftul/actions';
 import { ROLES } from './trusftul/constants';
 import { hasRole } from './trusftul/utils';
 import { sendOp } from './send-op';
