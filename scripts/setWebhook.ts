@@ -14,9 +14,9 @@ if (!process.env.BOT_TOKEN) {
 
 async function setWebhook() {
   // Get webhook URL from command line arguments
-  const webhookUrl = process.env.NEXT_PUBLIC_VERCEL_URL
-    ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}/api/bot`
-    : process.env.WEBHOOK_HOST;
+  const webhookUrl = `https://${
+    process.env.NEXT_PUBLIC_VERCEL_URL || process.env.WEBHOOK_HOST
+  }/api/bot`;
 
   if (!webhookUrl) {
     console.error('Please provide a webhook URL as a command line argument');

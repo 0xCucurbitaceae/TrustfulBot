@@ -5,8 +5,8 @@
   "main": "src/index.ts",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
-    "start": "npm run set-webhook && next start",
+    "build": "next build && tsx scripts/setWebhook.ts",
+    "start": "next start",
     "test": "echo \"Error: no test specified\" && exit 1",
     "set-webhook": "tsx scripts/setWebhook.ts"
   },
