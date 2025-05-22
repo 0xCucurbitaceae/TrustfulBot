@@ -12,6 +12,6 @@
     "outDir": "build",
     "rootDir": "src"
   },
-  "include": ["src/**/*", "api/webhook.ts"],
+  "include": ["src/**/*", "api/webhook.ts", "src/env.ts"],
   "exclude": ["node_modules"]
 }

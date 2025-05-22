@@ -2,19 +2,14 @@ import { TrustfulResolverABI } from './lib/TrustfulResolverABI';
 import { Context } from 'grammy';
 import axios from 'axios';
 import { getUserByHandler, saveUserData } from './supabase';
-import {
-  addVillager,
-  attest,
-  configs,
-  getTitles,
-  giveAttestation,
-} from './trustful';
+import { addVillager, attest, getTitles } from './trustful';
+import { ROLES } from './trusftul/constants';
+import { hasRole } from './trusftul/utils';
 import { sendOp } from './send-op';
+import ENV from './env';
 
 export const PLATFORM = 'ZUITZERLAND';
 const chain = '11145513';
-
-const config = configs[chain];
 
 export const commands: any = {};
 
@@ -90,12 +85,23 @@ commands['addTitle'] = async (ctx: Context) => {
     await ctx.reply('Please provide a title');
     return;
   }
-  // TODO: limit to managers
+  const me = await getUserByHandler(ctx.from?.username || '');
+  if (!me.success) {
+    await ctx.reply(
+      'You need to set up your account first. Use the /setup command.'
+    );
+    return;
+  }
+  const isManager = await hasRole(me.address!, ROLES.MANAGER);
+  if (!isManager) {
+    await ctx.reply('Only managers can add titles');
+    return;
+  }
   try {
     await sendOp([
       {
-        account: process.env.BLESSNET_API_ACCOUNT!,
-        target: config.resolver,
+        account: ENV.BLESSNET_API_ACCOUNT!,
+        target: ENV.RESOLVER,
         args: [title, true],
         functionName: 'setAttestationTitle',
         abi: TrustfulResolverABI,

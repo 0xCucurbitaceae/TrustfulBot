@@ -2,12 +2,22 @@
 
 A Telegram bot for the Blessnet platform that handles user setup and attestations.
 
+# SETUP
+
+1. Deploy trustful's resolver
+2. Register the 4 trustful schemas
+3. update the UIDs in the env
+4. Get a bless.net API account
+5. Make your blessnet account a manager on the resolver
+6. Fund your blessnet account with enough to fund each potential accounts
+
 ## TODO:
 
 - [] gate on groupID
 - [] prevent non-managers to addTitles
 - [] vote on new titles?
 - [] react on an attestation to confirm it
+- []
 
 ## Supabase Setup
 
