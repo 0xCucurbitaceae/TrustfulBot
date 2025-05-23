@@ -7,9 +7,10 @@ import { TrustfulResolverABI } from '../abis/TrustfulResolverABI';
 import ENV from '../lib/env';
 import { sendOp } from '../lib/send-op';
 import { getUserByHandler, saveUserData } from '../lib/supabase';
+import { isAdmin } from '../lib/tg-utils';
 import { addVillager, attest, getTitles } from '../trusftul/actions';
 import { config, ROLES } from '../trusftul/constants';
-import { hasRole } from '../trusftul/utils';
+import { giveAttestation, hasRole } from '../trusftul/utils';
 
 export const commands: any = {};
 
@@ -153,11 +154,6 @@ commands['addTitle'] = async (ctx: Context) => {
 };
 
 commands['addManager'] = async (ctx: Context) => {
-  const address = ctx.message?.text?.split(' ')[1];
-  if (!address) {
-    await ctx.reply('Please provide an address');
-    return;
-  }
   const me = await getUserByHandler(ctx.from?.username || '');
   if (!me.success) {
     await ctx.reply(
@@ -166,28 +162,39 @@ commands['addManager'] = async (ctx: Context) => {
     return;
   }
 
-  if (!me.data?.address) {
-    await ctx.reply(
-      'You need to set up your account first. Use the /setup command.'
-    );
-    return;
-  }
-
   const isManager = await hasRole(me.data?.address!, ROLES.MANAGER);
-  if (!isManager) {
+  const isAdmin_ = await isAdmin(ctx);
+  if (!isManager && !isAdmin_) {
     await ctx.reply('Only managers can add managers');
     return;
   }
+
+  const mentions = ctx.entities().filter((entity) => entity.type === 'mention');
+  if (mentions.length === 0) {
+    await ctx.reply('Please mention a user to add as manager');
+    return;
+  }
+
+  const users = await Promise.all(
+    mentions.map(async (mention) => await getUserByHandler(mention.text))
+  );
+  if (users.some((user) => !user.success)) {
+    await ctx.reply('Make sure users have run `/setup` first');
+    return;
+  }
+
   try {
-    await sendOp([
-      {
-        account: ENV.BLESSNET_API_ACCOUNT!,
-        target: ENV.RESOLVER,
-        args: [address],
-        functionName: 'setManager',
-        abi: TrustfulResolverABI,
-      },
-    ]);
+    await Promise.all(
+      users.map(async (user) =>
+        giveAttestation({
+          recipient: user.data!.address,
+          // we want the abstract account to be a manager, not the canonical one
+          attester: me.data!.address!,
+          attestationType: 'ATTEST_MANAGER',
+          args: [ROLES.MANAGER],
+        })
+      )
+    );
 
     await ctx.reply('Manager added successfully');
     return;
@@ -287,6 +294,22 @@ commands['whoami'] = async (ctx: Context) => {
     if (userData.data.canonAddress) {
       message += `\nCanonical Address: ${userData.data.canonAddress}`;
     }
+
+    // Check if user is admin in the specified group
+    const adminStatus = await isAdmin(ctx);
+    if (adminStatus === true) {
+      message += `\nGroup Status: Administrator`;
+    } else if (adminStatus === false) {
+      message += `\nGroup Status: Member`;
+    } else {
+      // adminStatus is null (GROUP_ID not set, user not identifiable, or API error)
+      if (!ENV.GROUP_ID) {
+        message += `\nGroup Status: GROUP_ID not configured.`;
+      } else {
+        message += `\nGroup Status: Could not determine.`;
+      }
+    }
+
     await ctx.reply(message);
   } else {
     await ctx.reply(
