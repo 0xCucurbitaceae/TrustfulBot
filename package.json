@@ -8,7 +8,8 @@
     "build": "next build && tsx scripts/setWebhook.ts",
     "start": "next start",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "set-webhook": "tsx scripts/setWebhook.ts"
+    "set-webhook": "tsx scripts/setWebhook.ts",
+    "migrate": "supabase db up"
   },
   "keywords": [],
   "author": "",

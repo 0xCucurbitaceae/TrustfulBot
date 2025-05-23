@@ -22,6 +22,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { useState, useEffect, useCallback } from 'react';
 import { Address, Hex, Log, parseEventLogs } from 'viem';
 import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
@@ -71,6 +72,7 @@ export default function DeploySchemaPage() {
   const [resolverAddress, setResolverAddress] = useState<Address | null>(null);
   const [schemaUIDs, setSchemaUIDs] = useState<Record<string, Hex>>({});
   const [managerAddressInput, setManagerAddressInput] = useState<string>('');
+  const [copiedCommands, setCopiedCommands] = useState(false);
 
   const resetDeploymentState = useCallback(() => {
     setIsDeploying(false);
@@ -99,7 +101,9 @@ export default function DeploySchemaPage() {
       finalManagerAddresses = [managerAddressInput.trim() as Address];
     } else {
       if (!connectedAddress) {
-        setDeploymentError('Wallet not connected to determine default manager.');
+        setDeploymentError(
+          'Wallet not connected to determine default manager.'
+        );
         return;
       }
       finalManagerAddresses = [connectedAddress];
@@ -197,6 +201,50 @@ export default function DeploySchemaPage() {
           <h2 className="text-xl font-semibold text-sky-700">
             Quick Setup Guide
           </h2>
+        </div>
+
+        <p className="text-sm text-gray-600 mb-4">
+          Follow these steps to deploy your TrustfulBot instance and configure
+          your Telegram bot.
+        </p>
+
+        <div className="mt-4">
+          <div className="flex justify-between items-center mb-1">
+            <label
+              htmlFor="botfather-commands"
+              className="block text-sm font-medium text-gray-700"
+            >
+              BotFather Commands:
+            </label>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                const commands = `setup - setup your account and check in to the village
+addtitle - add a new badge
+attest - give an attestation`;
+                navigator.clipboard.writeText(commands);
+                setCopiedCommands(true);
+                setTimeout(() => setCopiedCommands(false), 2000);
+              }}
+            >
+              <Copy className="h-4 w-4 mr-1" />
+              {copiedCommands ? 'Copied!' : 'Copy'}
+            </Button>
+          </div>
+          <Textarea
+            id="botfather-commands"
+            readOnly
+            rows={4}
+            className="w-full p-2 border border-gray-300 rounded-md bg-gray-50 focus:ring-sky-500 focus:border-sky-500"
+            value={`setup - setup your account and check in to the village
+addTitle - add a new badge
+attest - give an attestation`}
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Copy and paste these commands when setting up your bot with
+            BotFather on Telegram.
+          </p>
         </div>
 
         <h3 className="text-lg font-semibold text-sky-600 mt-4 mb-2 pl-2">
