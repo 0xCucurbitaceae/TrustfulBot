@@ -3,6 +3,7 @@ import { DM_Sans } from 'next/font/google';
 import './globals.css';
 import '@rainbow-me/rainbowkit/styles.css';
 import { Web3Providers } from './providers';
+import Header from '@/shared/components/Header';
 
 // Configure DM Sans font
 const dmSans = DM_Sans({
@@ -15,6 +16,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={dmSans.className}>
       <body style={{ margin: 0 }}>
+        <Header />
         <Web3Providers>{children}</Web3Providers>
       </body>
     </html>

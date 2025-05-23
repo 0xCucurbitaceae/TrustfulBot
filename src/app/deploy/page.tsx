@@ -2,7 +2,6 @@
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { ConnectButton } from '@rainbow-me/rainbowkit';
 import {
   AlertCircle,
   Bot,
@@ -29,6 +28,7 @@ import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
 import ENV from '../../lib/env';
 import { ResolverFactoryABI } from './ResolverFactoryABI';
 import { DeployedVariablesOutput } from './DeployedVariablesOutput';
+import { Web3Button } from '../../shared/components/Web3Button';
 
 const SCHEMA_REGISTRY_ADDRESS = ENV.SCHEMA_REGISTRY_ADDRESS as Address;
 const EAS_CONTRACT_ADDRESS = ENV.EAS as Address;
@@ -84,7 +84,7 @@ export default function DeploySchemaPage() {
 
   const handleDeploy = async () => {
     if (!connectedAddress || !walletClient || !publicClient) {
-      setDeploymentError('Please connect your wallet.');
+      setDeploymentError('Please connect your wallet and ensure it is ready.');
       return;
     }
 
@@ -100,12 +100,6 @@ export default function DeploySchemaPage() {
       }
       finalManagerAddresses = [managerAddressInput.trim() as Address];
     } else {
-      if (!connectedAddress) {
-        setDeploymentError(
-          'Wallet not connected to determine default manager.'
-        );
-        return;
-      }
       finalManagerAddresses = [connectedAddress];
     }
 
@@ -118,20 +112,19 @@ export default function DeploySchemaPage() {
     const deployedSchemaUIDs: Record<string, Hex> = {};
 
     try {
-      setDeploymentError('Deploying Resolver contract via Factory...');
       if (
         !FACTORY_CONTRACT_ADDRESS ||
         FACTORY_CONTRACT_ADDRESS === '0xYOUR_FACTORY_CONTRACT_ADDRESS_HERE'
       ) {
-        throw new Error(
+        setDeploymentError(
           'Factory contract address is not set. Please set NEXT_PUBLIC_FACTORY_ADDRESS in your .env file.'
         );
+        return;
       }
 
       console.log([
         EAS_CONTRACT_ADDRESS,
         SCHEMA_REGISTRY_ADDRESS,
-        connectedAddress,
         finalManagerAddresses,
       ]);
       const factoryDeployTxHash = await walletClient.writeContract({
@@ -188,7 +181,11 @@ export default function DeploySchemaPage() {
       setIsDeploying(false);
     }
   };
-
+const commands = `setup - setup your account and check in to the village
+addtitle - add a new badge
+attest - give an attestation
+titles - see available titles
+`;
   return (
     <div className="container mx-auto p-4 max-w-3xl">
       <h1 className="text-3xl font-bold mb-6 text-center">
@@ -220,9 +217,6 @@ export default function DeploySchemaPage() {
               variant="ghost"
               size="sm"
               onClick={() => {
-                const commands = `setup - setup your account and check in to the village
-addtitle - add a new badge
-attest - give an attestation`;
                 navigator.clipboard.writeText(commands);
                 setCopiedCommands(true);
                 setTimeout(() => setCopiedCommands(false), 2000);
@@ -237,9 +231,7 @@ attest - give an attestation`;
             readOnly
             rows={4}
             className="w-full p-2 border border-gray-300 rounded-md bg-gray-50 focus:ring-sky-500 focus:border-sky-500"
-            value={`setup - setup your account and check in to the village
-addTitle - add a new badge
-attest - give an attestation`}
+            value={commands}
           />
           <p className="text-xs text-gray-500 mt-1">
             Copy and paste these commands when setting up your bot with
@@ -304,155 +296,131 @@ attest - give an attestation`}
         </p>
       </div>
 
-      <div className="mb-6">
+      <div className="mb-4">
         <label
           htmlFor="managerAddress"
-          className="block font-medium text-gray-700 mb-1"
+          className="block text-sm font-medium text-foreground mb-1"
         >
-          Manager Address (Optional)
+          Optional: Manager Address (defaults to connected wallet)
         </label>
         <Input
           id="managerAddress"
           type="text"
-          placeholder="0x... (Defaults to your connected address if empty)"
+          placeholder="0x... (Leave blank to use connected wallet)"
           value={managerAddressInput}
           onChange={(e) => setManagerAddressInput(e.target.value)}
-          className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500"
+          className="w-full"
+          disabled={isDeploying}
         />
-        <p className="mt-1 text-xs text-gray-500">
-          This address will have administrative rights over the deployed
-          resolver.
-        </p>
       </div>
 
-      {!connectedAddress ? (
-        <div className="text-center p-6 bg-muted/50 rounded-md">
-          <Alert variant="destructive" className="w-full max-w-md">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Wallet Not Connected</AlertTitle>
+      <Web3Button
+        targetChainId={Number(ENV.CHAIN_ID)}
+        buttonClassName="w-full mt-4 text-lg px-6 py-3"
+      >
+        <Button
+          onClick={handleDeploy}
+          disabled={isDeploying}
+          className="w-full mt-4"
+          size="lg"
+        >
+          {isDeploying ? (
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+          ) : (
+            <Settings className="mr-2 h-5 w-5" />
+          )}
+          {isDeploying ? 'Deploying...' : 'Deploy Resolver & Schemas'}
+        </Button>
+      </Web3Button>
+
+      {deploymentError && (
+        <Alert variant="destructive" className="mt-4">
+          <XCircle className="h-4 w-4" />
+          <AlertTitle>Deployment Error</AlertTitle>
+          <AlertDescription>{deploymentError}</AlertDescription>
+        </Alert>
+      )}
+      {isDeploying && deploymentError && (
+        <Alert
+          variant="default"
+          className="mb-4 bg-blue-500/10 border-blue-500/50 text-blue-700 dark:text-blue-300"
+        >
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <AlertTitle>Deployment in Progress</AlertTitle>
+          <AlertDescription>{deploymentError}</AlertDescription>
+        </Alert>
+      )}
+
+      {(resolverAddress || Object.keys(schemaUIDs).length > 0) &&
+        !isDeploying &&
+        !deploymentError && (
+          <Alert variant="success" className="mb-4">
+            <CheckCircle2 className="h-4 w-4" />
+            <AlertTitle>Deployment Successful!</AlertTitle>
             <AlertDescription>
-              Please connect your wallet to deploy contracts and register
-              schemas.
+              Contracts deployed and schemas registered successfully.
             </AlertDescription>
           </Alert>
+        )}
 
-          <ConnectButton />
-        </div>
-      ) : (
-        <div className="bg-card p-6 rounded-lg shadow-md">
-          <Button
-            onClick={handleDeploy}
-            disabled={isDeploying || !connectedAddress || !walletClient}
-            className="w-full mb-4"
-            size="lg"
-          >
-            {isDeploying ? (
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-            ) : (
-              <CheckCircle2 className="mr-2 h-5 w-5" />
-            )}
-            {isDeploying ? 'Processing Deployment...' : 'Start Full Deployment'}
-          </Button>
-
-          <Button
-            onClick={resetDeploymentState}
-            variant="outline"
-            className="w-full mb-6"
-            disabled={isDeploying}
-          >
-            Reset Deployment State
-          </Button>
-
-          {deploymentError && !isDeploying && (
-            <Alert variant="destructive" className="mb-4">
-              <XCircle className="h-4 w-4" />
-              <AlertTitle>Deployment Error</AlertTitle>
-              <AlertDescription>{deploymentError}</AlertDescription>
-            </Alert>
-          )}
-          {isDeploying && deploymentError && (
-            <Alert
-              variant="default"
-              className="mb-4 bg-blue-500/10 border-blue-500/50 text-blue-700 dark:text-blue-300"
-            >
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <AlertTitle>Deployment in Progress</AlertTitle>
-              <AlertDescription>{deploymentError}</AlertDescription>
-            </Alert>
-          )}
-
-          {(resolverAddress || Object.keys(schemaUIDs).length > 0) &&
-            !isDeploying &&
-            !deploymentError && (
-              <Alert variant="success" className="mb-4">
-                <CheckCircle2 className="h-4 w-4" />
-                <AlertTitle>Deployment Successful!</AlertTitle>
-                <AlertDescription>
-                  Contracts deployed and schemas registered successfully.
-                </AlertDescription>
-              </Alert>
-            )}
-
-          {Object.keys(schemaUIDs).length > 0 && (
-            <div className="mb-4 p-3 bg-secondary rounded-md">
-              <h3 className="font-semibold mb-1">Registered Schema UIDs:</h3>
-              {schemasToRegister.map((schema) =>
-                schemaUIDs[schema.envVarName] ? (
-                  <div key={schema.envVarName} className="text-xs mb-1">
-                    <span className="font-medium">
-                      {schema.name} ({schema.envVarName}):
-                    </span>
-                    <p className="text-muted-foreground break-all">
-                      {schemaUIDs[schema.envVarName]}
-                    </p>
-                  </div>
-                ) : null
-              )}
-            </div>
-          )}
-
-          {resolverAddress && Object.keys(schemaUIDs).length > 0 && (
-            <>
-              <DeployedVariablesOutput
-                resolverAddress={resolverAddress}
-                envVarsFromDeployment={schemaUIDs}
-              />
-              <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg shadow-sm">
-                <div className="flex items-center mb-3">
-                  <Database className="h-6 w-6 mr-2 text-green-600" />
-                  <h2 className="text-xl font-semibold text-green-700">
-                    Important: Database Setup
-                  </h2>
-                </div>
-                <p className="text-gray-700 mb-2 pl-1">
-                  After deploying your TrustfulBot to Vercel and ensuring
-                  it&apos;s running with the correct environment variables, you
-                  need to set up its database schema in Supabase. This allows
-                  the bot to store user data.
-                </p>
-                <p className="text-gray-700 pl-1">
-                  Go to your Supabase project&apos;s SQL Editor and run the
-                  migration script found here:
-                </p>
-                <div className="mt-2 pl-1">
-                  <a
-                    href="https://github.com/0xCucurbitaceae/TrustfulBot/blob/58545c1206bc571e2633c3a527594b9b09c27cc8/scripts/supabase-migration.sql"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                  >
-                    View Supabase Migration SQL on GitHub
-                    <ExternalLink size={14} className="ml-1.5" />
-                  </a>
-                </div>
-                <p className="mt-3 text-xs text-gray-600 pl-1">
-                  This script will create the necessary <code>users</code> table
-                  for your bot to function correctly.
+      {Object.keys(schemaUIDs).length > 0 && (
+        <div className="mb-4 p-3 bg-secondary rounded-md">
+          <h3 className="font-semibold mb-1">Registered Schema UIDs:</h3>
+          {schemasToRegister.map((schema) =>
+            schemaUIDs[schema.envVarName] ? (
+              <div key={schema.envVarName} className="text-xs mb-1">
+                <span className="font-medium">
+                  {schema.name} ({schema.envVarName}):
+                </span>
+                <p className="text-muted-foreground break-all">
+                  {schemaUIDs[schema.envVarName]}
                 </p>
               </div>
-            </>
+            ) : null
           )}
         </div>
+      )}
+
+      {resolverAddress && Object.keys(schemaUIDs).length > 0 && (
+        <>
+          <DeployedVariablesOutput
+            resolverAddress={resolverAddress}
+            envVarsFromDeployment={schemaUIDs}
+          />
+          <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg shadow-sm">
+            <div className="flex items-center mb-3">
+              <Database className="h-6 w-6 mr-2 text-green-600" />
+              <h2 className="text-xl font-semibold text-green-700">
+                Important: Database Setup
+              </h2>
+            </div>
+            <p className="text-gray-700 mb-2 pl-1">
+              After deploying your TrustfulBot to Vercel and ensuring it&apos;s
+              running with the correct environment variables, you need to set up
+              its database schema in Supabase. This allows the bot to store user
+              data.
+            </p>
+            <p className="text-gray-700 pl-1">
+              Go to your Supabase project&apos;s SQL Editor and run the
+              migration script found here:
+            </p>
+            <div className="mt-2 pl-1">
+              <a
+                href="https://github.com/0xCucurbitaceae/TrustfulBot/blob/58545c1206bc571e2633c3a527594b9b09c27cc8/scripts/supabase-migration.sql"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+              >
+                View Supabase Migration SQL on GitHub
+                <ExternalLink size={14} className="ml-1.5" />
+              </a>
+            </div>
+            <p className="mt-3 text-xs text-gray-600 pl-1">
+              This script will create the necessary <code>users</code> table for
+              your bot to function correctly.
+            </p>
+          </div>
+        </>
       )}
       <div className="mb-8 mt-8 p-4 bg-sky-50 border border-sky-200 rounded-lg shadow-sm">
         <h3 className="text-lg font-semibold text-sky-700 mb-3">
