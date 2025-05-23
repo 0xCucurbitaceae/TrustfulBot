@@ -49,10 +49,10 @@ export const sendOp = async (requests: OpData[]) => {
     }
   };
   return Promise.race([
-    new Promise((_, reject) => {
+    new Promise((resolve) => {
       setTimeout(() => {
         console.log('Timed out');
-        reject('Timeout from blessnet');
+        resolve('Timeout from blessnet');
         // webhook timeout thingy
       }, 10_000);
     }),
