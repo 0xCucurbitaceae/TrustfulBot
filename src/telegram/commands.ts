@@ -86,7 +86,7 @@ commands['setup'] = async (ctx: Context) => {
       for (const result of results) {
         if (result.status === 'rejected') {
           console.error('Failed to save user data:', result.reason);
-          errors += `Failed to save user data: ${result.reason}\n`;
+          errors += `Failed to save user data: ${i} ${result.reason}\n`;
         }
         i++;
       }
