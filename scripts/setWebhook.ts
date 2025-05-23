@@ -39,6 +39,7 @@ async function setWebhook() {
   try {
     const response = await axios.post(telegramApiUrl, {
       url: webhookUrl,
+      allowed_updates: ['message', 'chat_member'],
     });
 
     console.log('Webhook set response:', response.data);
