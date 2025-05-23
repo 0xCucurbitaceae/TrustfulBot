@@ -39,7 +39,7 @@ export const sendOp = async (requests: OpData[]) => {
           }
           if (status === 'failed') {
             clearInterval(pollInterval);
-            reject('deliveryRes.data');
+            reject('Error sending the operation');
           }
         }, 500);
       });

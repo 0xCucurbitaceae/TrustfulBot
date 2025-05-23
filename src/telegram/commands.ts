@@ -12,7 +12,9 @@ import { addVillager, attest, getTitles } from '../trusftul/actions';
 import { config, ROLES } from '../trusftul/constants';
 import { giveAttestation, hasRole } from '../trusftul/utils';
 
-export const commands: any = {};
+export const commands: {
+  [key: string]: (ctx: Context) => Promise<void>;
+} = {};
 
 commands['help'] = async (ctx: Context) => {
   await ctx.reply(

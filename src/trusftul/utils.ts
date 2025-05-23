@@ -54,7 +54,6 @@ export const giveAttestation = async ({
     data: attestData,
   };
 
-  console.log(attestationRequest);
 
   await sendOp([
     {
