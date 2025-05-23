@@ -2,31 +2,14 @@
 
 A Telegram bot for the Blessnet platform that handles user setup and attestations.
 
+## Contents of the hackaton
 
-## SETUP
+- [updated Trustful resolvers to automatically set up on construction](https://github.com/blockful-io/trustful-zuzalu-contracts/pull/24)
+- [added a ResolverFactory](https://github.com/blockful-io/trustful-zuzalu-contracts/pull/25)
+- Created a bot that handles user interactions with EAS, the trustful way
+- made it some-clicks deployable to spin up your own bot
 
-## Only new resolver
-
-1. download the resolver from the trustful repo
-2. deploy it
-3. register the schemas
-4. set the blessed bot as manager
-
-## From Scratch
-1. Deploy EAS and SchemaRegistry
-2. Deploy trustful's resolver
-3. Register the 4 trustful schemas
-4. update the UIDs in the env
-5. Get a bless.net API account
-6. Make your blessnet account a manager on the resolver
-7. Fund your blessnet account with enough to fund each potential accounts
-8. Create a tg group
-9. run `/whoamigroup` to get the group ID
-10. set `GROUP_ID` in the env
-11. deploy your app
-12. Set the webhook with `pnpm set-webhook`
-
-### TODO:
+## TODO:
 
 **misc**
 
