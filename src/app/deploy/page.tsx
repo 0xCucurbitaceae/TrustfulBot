@@ -137,7 +137,6 @@ export default function DeploySchemaPage() {
         args: [
           EAS_CONTRACT_ADDRESS,
           SCHEMA_REGISTRY_ADDRESS,
-          connectedAddress,
           finalManagerAddresses,
         ],
         account: connectedAddress,

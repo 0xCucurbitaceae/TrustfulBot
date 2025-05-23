@@ -9,7 +9,6 @@ export const ResolverFactoryABI = [
         type: 'address',
         internalType: 'contract ISchemaRegistry',
       },
-      { name: 'deployer_', type: 'address', internalType: 'address' },
       { name: 'managers_', type: 'address[]', internalType: 'address[]' },
     ],
     outputs: [{ name: '', type: 'address', internalType: 'address' }],
