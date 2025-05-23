@@ -182,9 +182,9 @@ export default function DeploySchemaPage() {
     }
   };
 const commands = `setup - setup your account and check in to the village
-addtitle - add a new badge
+addbadge - add a new badge
 attest - give an attestation
-titles - see available titles
+badges - see available badges
 `;
   return (
     <div className="container mx-auto p-4 max-w-3xl">

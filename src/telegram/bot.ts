@@ -42,6 +42,31 @@ Object.entries(commands).forEach(
   }
 );
 
+// Handle new members joining the group
+bot.on('chat_member', async (ctx) => {
+  const chatMember = ctx.chatMember;
+  // Check if the update is for the correct group and a new member joined
+  if (
+    ctx.chat.id === ENV.GROUP_ID &&
+    chatMember.new_chat_member.status === 'member' &&
+    (chatMember.old_chat_member.status === 'left' ||
+      chatMember.old_chat_member.status === 'kicked')
+  ) {
+    // A new member has joined the group
+    // It's good practice to ensure the 'help' command exists
+    if (commands.help) {
+      // Create a minimal context for the help command if needed, or pass the existing one
+      // For simplicity, we'll try to use the existing context, assuming 'help' command doesn't rely on message-specific parts
+      console.log(
+        `New member ${chatMember.new_chat_member.user.first_name} joined. Triggering help command.`
+      );
+      await tryAndReply(commands.help)(ctx);
+    } else {
+      console.error('Help command not found for new member.');
+    }
+  }
+});
+
 bot.command('whoamigroup', async (ctx) => {
   await ctx.reply(`You are in group ${ctx.chat.id}`);
 });
