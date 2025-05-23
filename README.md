@@ -28,6 +28,9 @@ A Telegram bot for the Blessnet platform that handles user setup and attestation
 
 ### TODO:
 
+**misc**
+
+- [] allow delegate votes
 
 **tg**
 
@@ -46,7 +49,7 @@ A Telegram bot for the Blessnet platform that handles user setup and attestation
 **deploy**
 
 - [] automatically migrate supabase on deploy
-- [] allow fro groupId to be set later
+- [] allow for groupId to be set later
 
 ## Supabase Setup
 
