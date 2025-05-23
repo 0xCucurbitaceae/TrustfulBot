@@ -15,7 +15,7 @@ export const addVillager = async (recipient: string) => {
   if (isVillager) {
     console.log('Already a villager');
     return {
-      success: false,
+      success: true,
       message: 'User is already a villager',
     };
   }
