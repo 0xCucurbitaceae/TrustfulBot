@@ -14,6 +14,16 @@ import { giveAttestation, hasRole } from '../trusftul/utils';
 
 export const commands: any = {};
 
+commands['help'] = async (ctx: Context) => {
+  await ctx.reply(
+    `Available commands:
+    /setup [your-main-address] - setup your account and check in to the village (address is optional)
+    /addbadge badge-name - add a new badge
+    /attest @user badge-name and some description! - give an attestation
+    /badges - see available badges`
+  );
+};
+
 commands['setup'] = async (ctx: Context) => {
   try {
     // Get the user ID from the context
@@ -115,7 +125,7 @@ commands['setup'] = async (ctx: Context) => {
   }
 };
 
-commands['addTitle'] = async (ctx: Context) => {
+commands['addBadges'] = async (ctx: Context) => {
   const title = ctx.message?.text?.split(' ')[1];
   if (!title) {
     await ctx.reply('Please provide a title');
@@ -208,10 +218,10 @@ commands['addManager'] = async (ctx: Context) => {
 /**
  * Return all titles available to the users
  */
-commands['titles'] = async (ctx: Context) => {
+commands['badges'] = async (ctx: Context) => {
   const titles = await getTitles();
   await ctx.reply(
-    `Available titles are:\n${titles.map((title) => `• ${title}`).join('\n')}`
+    `Available badges are:\n${titles.map((title) => `• ${title}`).join('\n')}`
   );
 };
 
@@ -229,10 +239,25 @@ commands['attest'] = async (ctx: Context) => {
       .filter((entity) => entity.type === 'mention');
 
     const lastMention = mentions[mentions.length - 1];
+    if (!lastMention) {
+      await ctx.reply(
+        'Please mention a user to attest. Example: /attest @username title'
+      );
+      return;
+    }
     const postMentionsText = text
       .slice(lastMention.offset + lastMention.length)
       .trim();
     const [title, ...description] = postMentionsText.split(' ');
+    const titles = await getTitles();
+    if (!titles.includes(title)) {
+      await ctx.reply(
+        `Title "${title}" not found. Available titles are:\n${titles
+          .map((title) => `• ${title}`)
+          .join('\n')}`
+      );
+      return;
+    }
     const comment = description.join(' ').trim() || 'NO_COMMENT';
 
     if (mentions.length === 0) {
@@ -275,7 +300,7 @@ commands['attest'] = async (ctx: Context) => {
   } catch (error) {
     console.error('Error in attest command:', error);
     await ctx.reply(
-      error.message || 'An error occurred while processing your request.'
+      error.message || 'An error occurred while processing your request.aa'
     );
   }
 };
