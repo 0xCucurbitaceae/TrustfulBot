@@ -40,6 +40,7 @@ A Telegram bot for the Blessnet platform that handles user setup and attestation
 - [] vote on new titles?
 - [] react on an attestation to confirm it
 - [] support disabling titles
+- [] attest of an address mapping when sending a canonical address
 
 **resolver**
 

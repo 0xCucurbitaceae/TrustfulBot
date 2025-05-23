@@ -84,7 +84,7 @@ export const getUserByHandler = async (
     const { data, error } = await supabase
       .from('users')
       .select('*')
-      .eq('handle', handle)
+      .eq('handle', handle.replace('@', ''))
       .single();
 
     if (error) {

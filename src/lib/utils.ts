@@ -15,9 +15,9 @@ export function cn(...inputs: ClassValue[]) {
  */
 export async function resolveEnsName(
   ensName: string | undefined
-): Promise<string | null> {
+): Promise<string | undefined> {
   if (!ensName) {
-    return null;
+    return undefined;
   }
   if (ethers.isAddress(ensName)) {
     return ensName;
