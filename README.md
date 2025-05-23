@@ -2,7 +2,8 @@
 
 A Telegram bot for the Blessnet platform that handles user setup and attestations.
 
-# SETUP
+
+## SETUP
 
 ## Only new resolver
 
@@ -25,10 +26,10 @@ A Telegram bot for the Blessnet platform that handles user setup and attestation
 11. deploy your app
 12. Set the webhook with `pnpm set-webhook`
 
-## TODO:
+### TODO:
 
 
-### tg
+**tg**
 
 - [x] gate on groupID
 - [x] prevent non-managers to addTitles
@@ -37,14 +38,15 @@ A Telegram bot for the Blessnet platform that handles user setup and attestation
 - [] react on an attestation to confirm it
 - [] support disabling titles
 
-### resolver
+**resolver**
 
 - [] accept array of schemas to set all schemas at once
 - [] handle groups
 
-### deploy
+**deploy**
 
-- [] migrate supabase on deploy
+- [] automatically migrate supabase on deploy
+- [] allow fro groupId to be set later
 
 ## Supabase Setup
 

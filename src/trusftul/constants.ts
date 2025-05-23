@@ -23,32 +23,6 @@ export interface BadgeTitle {
   data: string;
   allowedRole: string[];
 }
-// export const ZUVILLAGE_BADGE_TITLES: () => BadgeTitle[] = () => [
-//   {
-//     title: 'Manager',
-//     uid: config.attestations.ATTEST_MANAGER.uid,
-//     allowComment: false,
-//     revocable: true,
-//     data: config.attestations.ATTEST_MANAGER.data,
-//     allowedRole: config.attestations.ATTEST_MANAGER.allowedRole,
-//   },
-//   {
-//     title: 'Check-in',
-//     uid: config.attestations.ATTEST_VILLAGER.uid,
-//     allowComment: false,
-//     revocable: false,
-//     data: config.attestations.ATTEST_VILLAGER.data,
-//     allowedRole: config.attestations.ATTEST_VILLAGER.allowedRole,
-//   },
-//   {
-//     title: 'Check-out',
-//     uid: config.attestations.ATTEST_VILLAGER.uid,
-//     allowComment: true,
-//     revocable: false,
-//     data: config.attestations.ATTEST_VILLAGER.data,
-//     allowedRole: config.attestations.ATTEST_VILLAGER.allowedRole,
-//   },
-// ];
 
 export const config = {
   resolver: ENV.RESOLVER,

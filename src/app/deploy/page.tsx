@@ -90,11 +90,11 @@ export default function DeploySchemaPage() {
       }
       finalManagerAddresses = [managerAddressInput.trim() as Address];
     } else {
-      if (!connectedAddress) { 
+      if (!connectedAddress) {
         setDeploymentError('Wallet not connected to determine default manager.');
         return;
       }
-      finalManagerAddresses = [connectedAddress]; 
+      finalManagerAddresses = [connectedAddress];
     }
 
     setIsDeploying(true);
@@ -120,7 +120,7 @@ export default function DeploySchemaPage() {
         EAS_CONTRACT_ADDRESS,
         SCHEMA_REGISTRY_ADDRESS,
         connectedAddress,
-        finalManagerAddresses, 
+        finalManagerAddresses,
       ]);
       const factoryDeployTxHash = await walletClient.writeContract({
         address: FACTORY_CONTRACT_ADDRESS,
@@ -129,8 +129,8 @@ export default function DeploySchemaPage() {
         args: [
           EAS_CONTRACT_ADDRESS,
           SCHEMA_REGISTRY_ADDRESS,
-          connectedAddress, 
-          finalManagerAddresses, 
+          connectedAddress,
+          finalManagerAddresses,
         ],
         account: connectedAddress,
       });
@@ -156,7 +156,7 @@ export default function DeploySchemaPage() {
 
       deployedResolverAddress = event.args.resolver;
       setResolverAddress(deployedResolverAddress);
-      setDeploymentError(null); 
+      setDeploymentError(null);
 
       setSchemaUIDs({
         MANAGER_UID: event.args.schemaUIDs[0],
@@ -212,7 +212,7 @@ export default function DeploySchemaPage() {
           <li>
             Get{' '}
             <a
-              href="https://bless.net" 
+              href="https://bless.net"
               target="_blank"
               rel="noopener noreferrer"
               className="text-sky-600 hover:underline font-medium"
