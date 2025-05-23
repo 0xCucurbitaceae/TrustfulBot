@@ -1,15 +1,15 @@
-import { TrustfulResolverABI } from '../abis/TrustfulResolverABI';
-import { Context } from 'grammy';
+import { resolveEnsName } from '@/lib/utils';
 import axios from 'axios';
+import { ethers } from 'ethers';
+import { Context } from 'grammy';
+import { EntryPointABI } from '../abis/EntryPoint';
+import { TrustfulResolverABI } from '../abis/TrustfulResolverABI';
+import ENV from '../lib/env';
+import { sendOp } from '../lib/send-op';
 import { getUserByHandler, saveUserData } from '../lib/supabase';
 import { addVillager, attest, getTitles } from '../trusftul/actions';
 import { config, ROLES } from '../trusftul/constants';
 import { hasRole } from '../trusftul/utils';
-import { sendOp } from '../lib/send-op';
-import ENV from '../lib/env';
-import { ethers, Contract, AddressLike } from 'ethers';
-import { EntryPointABI } from '../abis/EntryPoint';
-import { blessedAccountABI } from '../abis/BlessedAccount';
 
 export const commands: any = {};
 
@@ -17,9 +17,21 @@ commands['setup'] = async (ctx: Context) => {
   try {
     // Get the user ID from the context
     const tgId = ctx.from?.id.toString();
+    const handlerId = ctx.from?.username;
+    const commandArgs = ctx.message?.text?.split(' ') || [];
+    // commandArgs[0] is '/setup', commandArgs[1] (if exists) is the optional address
+    let canonAddressRaw = commandArgs.length > 1 ? commandArgs[1] : undefined;
+    let canonAddress = await resolveEnsName(canonAddressRaw);
 
     if (!tgId) {
       await ctx.reply('Could not identify your user ID. Please try again.');
+      return null;
+    }
+
+    if (!handlerId) {
+      await ctx.reply(
+        'Could not identify your Telegram username. Please set one and try again.'
+      );
       return null;
     }
 
@@ -34,15 +46,17 @@ commands['setup'] = async (ctx: Context) => {
     );
 
     const { account: address, message } = response.data?.accounts[0];
-    const handlerId = ctx.from?.username;
 
     console.log('Account setup response:', handlerId);
     const promises: any[] = [];
     // TODO: gate on group
-    if (handlerId && address) {
-      // Save the user data to Supabase including the account
+    if (address) {
+      // Save the user data to Supabase including the account and optional canon_address
       promises.push(addVillager(address));
-      promises.push(saveUserData(handlerId, tgId, address));
+      if (canonAddress) {
+        promises.push(addVillager(canonAddress));
+      }
+      promises.push(saveUserData(handlerId, tgId, address, canonAddress));
 
       // the blessnet API does not yet support funding new accounts
       // so we do it manually for now, using a pK and a dedicated address
@@ -75,16 +89,16 @@ commands['setup'] = async (ctx: Context) => {
         }
         i++;
       }
-      await ctx.reply(
-        `Your account has been set up successfully!\nHandler ID: ${handlerId}\nAccount: ${address}\n${errors}`
-      );
+      let replyMessage = `Your account has been set up successfully!\nHandler ID: ${handlerId}\nAccount: ${address}`;
+      if (canonAddress) {
+        replyMessage += `\nCanonical Address: ${canonAddress}`;
+      }
+      replyMessage += `\n${errors}`;
+      await ctx.reply(replyMessage);
     } else {
-      console.error(
-        'Missing account or handler ID in response:',
-        response.data
-      );
+      console.error('Missing account in response:', response.data);
       await ctx.reply(
-        'Your account was created, but we could not identify your account or handler ID.'
+        'Your account was created, but we could not identify your account.'
       );
     }
 
@@ -134,6 +148,52 @@ commands['addTitle'] = async (ctx: Context) => {
   } catch (error) {
     console.error('Error adding title:', error);
     await ctx.reply(error.message || 'Failed to add title');
+    return;
+  }
+};
+
+commands['addManager'] = async (ctx: Context) => {
+  const address = ctx.message?.text?.split(' ')[1];
+  if (!address) {
+    await ctx.reply('Please provide an address');
+    return;
+  }
+  const me = await getUserByHandler(ctx.from?.username || '');
+  if (!me.success) {
+    await ctx.reply(
+      'You need to set up your account first. Use the /setup command.'
+    );
+    return;
+  }
+
+  if (!me.data?.address) {
+    await ctx.reply(
+      'You need to set up your account first. Use the /setup command.'
+    );
+    return;
+  }
+
+  const isManager = await hasRole(me.data?.address!, ROLES.MANAGER);
+  if (!isManager) {
+    await ctx.reply('Only managers can add managers');
+    return;
+  }
+  try {
+    await sendOp([
+      {
+        account: ENV.BLESSNET_API_ACCOUNT!,
+        target: ENV.RESOLVER,
+        args: [address],
+        functionName: 'setManager',
+        abi: TrustfulResolverABI,
+      },
+    ]);
+
+    await ctx.reply('Manager added successfully');
+    return;
+  } catch (error) {
+    console.error('Error adding manager:', error);
+    await ctx.reply(error.message || 'Failed to add manager');
     return;
   }
 };
@@ -189,10 +249,11 @@ commands['attest'] = async (ctx: Context) => {
     );
     console.log('Attesting', title, comment, mentionedUsers);
     for (const mentionedUser of mentionedUsers) {
-      if (mentionedUser.success) {
+      if (mentionedUser.success && mentionedUser.data) {
         await attest({
-          recipient: mentionedUser.address!,
-          attester: me.address!,
+          recipient:
+            mentionedUser.data.canonAddress ?? mentionedUser.data.address,
+          attester: me.data?.address!,
           title,
           comment,
         });
@@ -213,66 +274,25 @@ commands['attest'] = async (ctx: Context) => {
 };
 
 commands['whoami'] = async (ctx: Context) => {
-  try {
-    const username = ctx.from?.username;
-    if (!username) {
-      await ctx.reply(
-        'Could not identify your Telegram username. Please ensure it is set.'
-      );
-      return;
+  const handlerId = ctx.from?.username;
+  if (!handlerId) {
+    await ctx.reply('Could not identify your Telegram username.');
+    return;
+  }
+
+  const userData = await getUserByHandler(handlerId);
+
+  if (userData.success && userData.data) {
+    let message = `Telegram Handle: @${userData.data.handle}\nTelegram ID: ${userData.data.tgId}\nBlessed Account: ${userData.data.address}`;
+    if (userData.data.canonAddress) {
+      message += `\nCanonical Address: ${userData.data.canonAddress}`;
     }
-
-    const userData = await getUserByHandler(username);
-
-    if (!userData.success || !userData.address) {
-      await ctx.reply(
-        'Your account is not set up yet or your address is not found. Please use the /setup command first.'
-      );
-      return;
-    }
-
-    const blessedAccountAddress = userData.address as AddressLike;
-
-    const blessedAccountContract = new Contract(
-      userData.address,
-      blessedAccountABI,
-      config.provider
-    );
-
-    let balanceBigInt: bigint;
-    try {
-      balanceBigInt = await blessedAccountContract.getDeposit();
-    } catch (readError: any) {
-      console.error(
-        `Error reading getDeposit for ${blessedAccountAddress}:`,
-        readError
-      );
-      if (
-        readError.code === 'CALL_EXCEPTION' ||
-        readError.message?.includes('call revert exception')
-      ) {
-        await ctx.reply(
-          `Your registered address is: ${blessedAccountAddress}\n\nCould not fetch balance. This address might not be a smart contract account with a deposit function, or it may not be fully set up on the network yet.`
-        );
-      } else {
-        await ctx.reply(
-          `Your registered address is: ${blessedAccountAddress}\n\nAn error occurred while fetching your balance. Please try again later.`
-        );
-      }
-      return;
-    }
-
-    const balanceEth = ethers.formatEther(balanceBigInt);
-
+    await ctx.reply(message);
+  } else {
     await ctx.reply(
-      `Hello @${username}!
-Your blessed account address is: ${blessedAccountAddress}
-Your current deposit balance is: ${balanceEth} ETH`
-    );
-  } catch (error: any) {
-    console.error('Error in /whoami command:', error);
-    await ctx.reply(
-      'An unexpected error occurred while fetching your details. Please try again later.'
+      'User not found. Use the /setup command to set up your account.'
     );
   }
 };
+
+// Keep a simple ping command for health checks
