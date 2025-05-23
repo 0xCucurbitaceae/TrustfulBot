@@ -16,6 +16,12 @@ export const commands: {
   [key: string]: (ctx: Context) => Promise<void>;
 } = {};
 
+if (process.env.NODE_ENV !== 'production') {
+  commands['test'] = async (ctx: Context) => {
+    await ctx.reply('tester command');
+  };
+}
+
 commands['help'] = async (ctx: Context) => {
   await ctx.reply(
     `Available commands:

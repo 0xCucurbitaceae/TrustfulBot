@@ -72,8 +72,12 @@ bot.command('whoamigroup', async (ctx) => {
 });
 
 // must be last
-bot.on('message', async (ctx) => {
-  // console.log('message', ctx);
-  // ctx.reply('Please use the menu to setup your blessed account!', {});
+bot.on('message:new_chat_members', async (ctx) => {
+  ctx.reply(
+    `Welcome to TrustBot @${ctx.from?.username}! Check in to the village with \`/setup\` or \`/setup [your-main-address]\``,
+    {
+      parse_mode: 'Markdown',
+    }
+  );
 });
 export default bot;
