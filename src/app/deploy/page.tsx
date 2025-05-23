@@ -260,23 +260,16 @@ badges - see available badges
             </span>
           </li>
           <li className="flex items-start">
-            <Edit3 className="h-4 w-4 mr-2 mt-0.5 inline-block flex-shrink-0 text-sky-500" />
-            <span>
-              Choose a PLATFORM name (e.g., "MyCommunity"). This will be part of
-              your schema names.
-            </span>
-          </li>
-          <li className="flex items-start">
             <KeyRound className="h-4 w-4 mr-2 mt-0.5 inline-block flex-shrink-0 text-sky-500" />
             <span>
-              Get a Bless Net API Key from the{' '}
+              Get a blessnet API Key from the{' '}
               <a
-                href="https://bless.net/dashboard/api-keys"
+                href="https://bless.net/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sky-600 hover:underline font-medium"
               >
-                Bless Net Dashboard{' '}
+                bless.net{' '}
                 <ExternalLink className="inline-block h-3 w-3 ml-0.5" />
               </a>
               .
