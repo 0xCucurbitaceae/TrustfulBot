@@ -29,7 +29,6 @@ const tryAndReply =
 
 Object.entries(commands).forEach(
   ([command, handler]: [string, (ctx: Context) => Promise<void>]) => {
-    console.log('subscribing to ', command);
     bot.command(
       command,
       async (ctx, next) => {

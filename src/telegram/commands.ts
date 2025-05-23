@@ -55,6 +55,7 @@ commands['setup'] = async (ctx: Context) => {
       // Save the user data to Supabase including the account and optional canon_address
       promises.push(addVillager(address));
       if (canonAddress) {
+        console.log('Adding canon address', canonAddress);
         promises.push(addVillager(canonAddress));
       }
       promises.push(saveUserData(handlerId, tgId, address, canonAddress));
@@ -62,12 +63,11 @@ commands['setup'] = async (ctx: Context) => {
       // the blessnet API does not yet support funding new accounts
       // so we do it manually for now, using a pK and a dedicated address
       // in a future version, the above call should do it for us.
-      if (message === 'Account already exists') {
+      if (message !== 'Account already exists') {
         const signer = new ethers.Wallet(
           process.env.FUNDER_PRIVATE_KEY!,
           config.provider
         );
-        console.log(ENV.ENTRYPOINT);
         const entryPoint = new ethers.Contract(
           ENV.ENTRYPOINT,
           EntryPointABI,
