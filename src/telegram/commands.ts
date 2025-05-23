@@ -128,7 +128,8 @@ commands['setup'] = async (ctx: Context) => {
 };
 
 commands['addBadge'] = async (ctx: Context) => {
-  const title = ctx.message?.text?.split(' ')[1];
+  const [_, ...titles] = ctx.message?.text?.split(' ') || [];
+  const title = titles.join(' ');
   if (!title) {
     await ctx.reply('Please provide a title');
     return;
