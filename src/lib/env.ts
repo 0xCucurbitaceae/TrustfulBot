@@ -28,7 +28,6 @@ const configs = {
   },
 };
 
-console.log(chainId, configs[chainId]);
 const ENV = {
   MAINNET_RPC_URL: process.env.MAINNET_RPC_URL! || 'https://eth.llamarpc.com',
   IS_MAINNET: String(chainId) === '45513',
