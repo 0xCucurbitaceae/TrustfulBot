@@ -5,12 +5,20 @@ import { Button } from '@/components/ui/button';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import {
   AlertCircle,
+  Bot,
   CheckCircle2,
   ClipboardList,
   Copy,
   Database,
+  Edit3,
   ExternalLink,
+  Hash,
+  KeyRound,
   Loader2,
+  Settings,
+  UserCircle2,
+  Users,
+  Wallet,
   XCircle,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -191,50 +199,68 @@ export default function DeploySchemaPage() {
             Quick Setup Guide
           </h2>
         </div>
-        <ol className="list-decimal list-inside space-y-1.5 text-sm text-gray-700 pl-2">
-          <li>
-            Create Telegram Bot via{' '}
-            <a
-              href="https://t.me/BotFather"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sky-600 hover:underline font-medium"
-            >
-              BotFather
-            </a>{' '}
-            (get BOT_TOKEN).
+
+        <h3 className="text-lg font-semibold text-sky-600 mt-4 mb-2 pl-2">
+          Before You Deploy:
+        </h3>
+        <ol className="list-decimal list-inside space-y-2 text-gray-700 pl-4">
+          <li className="flex items-start">
+            <Bot className="h-4 w-4 mr-2 mt-0.5 inline-block flex-shrink-0 text-sky-500" />
+            <span>
+              Create Telegram Bot via{' '}
+              <a
+                href="https://t.me/BotFather"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sky-600 hover:underline font-medium"
+              >
+                BotFather{' '}
+                <ExternalLink className="inline-block h-3 w-3 ml-0.5" />
+              </a>{' '}
+              (and get your <code>BOT_TOKEN</code>).
+            </span>
           </li>
-          <li>Invite bot to your Telegram group.</li>
-          <li>
-            In group, use <code>/whoamigroup</code> with bot (get GROUP_ID).
+          <li className="flex items-start">
+            <Edit3 className="h-4 w-4 mr-2 mt-0.5 inline-block flex-shrink-0 text-sky-500" />
+            <span>
+              Choose a PLATFORM name (e.g., "MyCommunity"). This will be part of
+              your schema names.
+            </span>
           </li>
-          <li>Choose a PLATFORM name (e.g., &quot;MyCommunity&quot;).</li>
-          <li>
-            Get{' '}
-            <a
-              href="https://bless.net"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sky-600 hover:underline font-medium"
-            >
-              Bless Profile ID
-            </a>{' '}
-            (get BLESS_PROFILE_ID). This is your main identity.
-          </li>
-          <li>
-            (Optional) Provide a specific Manager address below. If left empty,
-            your connected wallet address will be used as the manager.
+          <li className="flex items-start">
+            <KeyRound className="h-4 w-4 mr-2 mt-0.5 inline-block flex-shrink-0 text-sky-500" />
+            <span>
+              Get a Bless Net API Key from the{' '}
+              <a
+                href="https://bless.net/dashboard/api-keys"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sky-600 hover:underline font-medium"
+              >
+                Bless Net Dashboard{' '}
+                <ExternalLink className="inline-block h-3 w-3 ml-0.5" />
+              </a>
+              .
+            </span>
           </li>
         </ol>
-        <p className="mt-3 text-xs text-gray-600 pl-2">
-          These details will be needed for the <code>.env</code> configuration.
+        <p className="mt-2 text-xs text-gray-600 pl-4">
+          The <code>BOT_TOKEN</code>, <code>PLATFORM</code> name, and Bless Net
+          API Key (<code>BLESSNET_API_KEY</code> &{' '}
+          <code>BLESSNET_API_ACCOUNT</code>) will be needed for your{' '}
+          <code>.env.local</code> file after deployment.
+        </p>
+
+        <p className="mt-4 text-xs text-gray-600 pl-2">
+          The Manager Address below is for the on-chain resolver contract. It
+          defaults to your connected wallet if left empty.
         </p>
       </div>
 
       <div className="mb-6">
         <label
           htmlFor="managerAddress"
-          className="block text-sm font-medium text-gray-700 mb-1"
+          className="block font-medium text-gray-700 mb-1"
         >
           Manager Address (Optional)
         </label>
@@ -322,9 +348,7 @@ export default function DeploySchemaPage() {
 
           {Object.keys(schemaUIDs).length > 0 && (
             <div className="mb-4 p-3 bg-secondary rounded-md">
-              <h3 className="font-semibold text-sm mb-1">
-                Registered Schema UIDs:
-              </h3>
+              <h3 className="font-semibold mb-1">Registered Schema UIDs:</h3>
               {schemasToRegister.map((schema) =>
                 schemaUIDs[schema.envVarName] ? (
                   <div key={schema.envVarName} className="text-xs mb-1">
@@ -353,13 +377,13 @@ export default function DeploySchemaPage() {
                     Important: Database Setup
                   </h2>
                 </div>
-                <p className="text-sm text-gray-700 mb-2 pl-1">
+                <p className="text-gray-700 mb-2 pl-1">
                   After deploying your TrustfulBot to Vercel and ensuring
                   it&apos;s running with the correct environment variables, you
                   need to set up its database schema in Supabase. This allows
                   the bot to store user data.
                 </p>
-                <p className="text-sm text-gray-700 pl-1">
+                <p className="text-gray-700 pl-1">
                   Go to your Supabase project&apos;s SQL Editor and run the
                   migration script found here:
                 </p>
@@ -383,6 +407,32 @@ export default function DeploySchemaPage() {
           )}
         </div>
       )}
+      <div className="mb-8 mt-8 p-4 bg-sky-50 border border-sky-200 rounded-lg shadow-sm">
+        <h3 className="text-lg font-semibold text-sky-700 mb-3">
+          After Deployment & Initial Setup:
+        </h3>
+        <ol className="list-decimal list-inside space-y-2 text-gray-700">
+          <li className="flex items-start">
+            <Users className="h-4 w-4 mr-2 mt-0.5 inline-block flex-shrink-0 text-sky-500" />
+            <span>Invite your newly deployed bot to your Telegram group.</span>
+          </li>
+          <li className="flex items-start">
+            <Hash className="h-4 w-4 mr-2 mt-0.5 inline-block flex-shrink-0 text-sky-500" />
+            <span>
+              In the Telegram group, run the <code>/whoamigroup</code> command
+              with your bot to get the <code>GROUP_ID</code>.
+            </span>
+          </li>
+          <li className="flex items-start">
+            <Settings className="h-4 w-4 mr-2 mt-0.5 inline-block flex-shrink-0 text-sky-500" />
+            <span>
+              Navigate to your deployed app's <code>/setup</code> page (e.g.,{' '}
+              <code>https://your-app-url.vercel.app/setup</code>) and paste the{' '}
+              <code>GROUP_ID</code>.
+            </span>
+          </li>
+        </ol>
+      </div>
     </div>
   );
 }
