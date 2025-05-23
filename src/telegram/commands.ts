@@ -112,7 +112,7 @@ commands['setup'] = async (ctx: Context) => {
       if (canonAddress) {
         replyMessage += `\nCanonical Address: ${canonAddress}`;
       }
-      replyMessage += `\n${errors}`;
+      // replyMessage += `\n${errors}`;
       await ctx.reply(replyMessage);
     } else {
       console.error('Missing account in response:', response.data);
