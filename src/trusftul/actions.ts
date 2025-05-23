@@ -1,6 +1,6 @@
 import dotenv from 'dotenv';
 import { getResolverContract, giveAttestation } from './utils';
-import { ROLES } from './constants';
+import { config, ROLES } from './constants';
 
 dotenv.config();
 
@@ -9,7 +9,7 @@ dotenv.config();
  * @param recipient The recipient's ID
  */
 export const addVillager = async (recipient: string) => {
-  console.log('Adding villager', recipient);
+  console.log('Adding villager', recipient, config.resolver);
   const contract = getResolverContract();
   const isVillager = await contract.hasRole(ROLES.VILLAGER, recipient);
   if (isVillager) {
