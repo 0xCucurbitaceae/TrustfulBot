@@ -22,7 +22,7 @@ const tryAndReply =
     } catch (error) {
       console.error('Error in command handler:', error);
       await ctx.reply(
-        error.message || 'An error occurred while processing your request.'
+        error.message || 'An error occurred while processing your requesta.'
       );
     }
   };
